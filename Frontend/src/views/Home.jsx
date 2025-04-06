@@ -31,9 +31,9 @@ function Home() {
         setLanguage((prevLang) => (prevLang === "en" ? "es" : "en"));
     };
 
+    // En Home.js (cambios mínimos)
     const handleLogin = async (e) => {
         e.preventDefault();
-
         try {
             const response = await fetch(`${API_URL}/api/login`, {
                 method: "POST",
@@ -47,7 +47,7 @@ function Home() {
 
             if (data.success) {
                 toast.success("Inicio de sesión exitoso");
-                navigate("/game");
+                navigate("/game", { state: { language } }); // Pasamos el idioma como estado
             } else {
                 toast.error("Usuario o contraseña incorrectos");
             }

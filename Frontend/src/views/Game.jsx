@@ -1,35 +1,33 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { FaVolumeUp, FaVolumeMute } from "react-icons/fa"; // Asegúrate de instalar react-icons
+import { useNavigate, useLocation } from "react-router-dom";
+import { FaVolumeUp, FaVolumeMute } from "react-icons/fa";
 
 function Game() {
     const navigate = useNavigate();
+    const location = useLocation();
     const [selectedLetters, setSelectedLetters] = useState([]);
     const [grid, setGrid] = useState(generateRandomGrid());
     const [showLetters, setShowLetters] = useState(false);
-    const [scoreHistory, setScoreHistory] = useState([
-        { palabra: "EXITO", puntos: 8 },
-        { palabra: "JUEGO", puntos: 5 },
-        { palabra: "REACT", puntos: 7 },
-        { palabra: "CODIGO", puntos: 6 },
-        { palabra: "PUNTOS", puntos: 9 }
-    ]);
+    const [scoreHistory, setScoreHistory] = useState([]);
     const [timeLeft, setTimeLeft] = useState(180);
+    const [gameOver, setGameOver] = useState(false);
+    const [finalScore, setFinalScore] = useState(0);
     const timerRef = useRef(null);
+    const [usedWords, setUsedWords] = useState(new Set());
+    const [language, setLanguage] = useState(location.state?.language || "es");
 
     const audioRef = useRef(null);
     const [isPlaying, setIsPlaying] = useState(false);
 
     useEffect(() => {
         if (audioRef.current) {
-            audioRef.current.volume = 0.1; // Ajusta el volumen aquí
+            audioRef.current.volume = 0.1;
         }
     }, []);
 
     const API_URL = import.meta.env.VITE_API_URL;
 
     const toggleMusic = () => {
-        if (!audioRef.current) return;
         if (isPlaying) {
             audioRef.current.pause();
         } else {
@@ -48,6 +46,8 @@ function Game() {
                 setTimeLeft(prev => {
                     if (prev <= 1) {
                         clearInterval(timerRef.current);
+                        setGameOver(true);
+                        calculateFinalScore();
                         return 0;
                     }
                     return prev - 1;
@@ -69,8 +69,13 @@ function Game() {
         );
     }
 
+    const calculateFinalScore = () => {
+        const total = scoreHistory.reduce((sum, item) => sum + item.puntos, 0);
+        setFinalScore(total);
+    };
+
     const handleLetterClick = (row, col) => {
-        if (!showLetters || timeLeft === 0) return;
+        if (!showLetters || timeLeft === 0 || gameOver) return;
         const letter = grid[row][col];
         const position = `${row}-${col}`;
         setSelectedLetters(prev => {
@@ -87,35 +92,52 @@ function Game() {
         setGrid(generateRandomGrid());
         setShowLetters(true);
         setTimeLeft(180);
+        setScoreHistory([]);
+        setUsedWords(new Set());
+        setGameOver(false);
+        setFinalScore(0);
     };
 
     const handleSubmit = async () => {
-        const testWords = { es: "correr", en: "run" };
-        const wordToSend = testWords.es;
+        if (gameOver) return;
+        
+        const userWord = selectedLetters.map(item => item.letter).join('').toLowerCase();
+        
+        if (userWord.length < 2) {
+            alert(language === "es" ? "La palabra debe tener al menos 2 letras" : "Word must be at least 2 letters long");
+            return;
+        }
+
+        if (usedWords.has(userWord)) {
+            alert(language === "es" ? "Ya has ingresado esta palabra antes" : "You've already used this word");
+            return;
+        }
 
         try {
             const response = await fetch(`${API_URL}/api/check`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ word: wordToSend, language: "es" }),
+                body: JSON.stringify({ 
+                    word: userWord, 
+                    language: language
+                }),
             });
 
             const data = await response.json();
 
             if (data.score) {
-                const userWord = selectedLetters.map(item => item.letter).join('');
-                const newScore = data.score;
-                setScoreHistory([{ palabra: userWord, puntos: newScore }, ...scoreHistory]);
+                setUsedWords(prev => new Set(prev).add(userWord));
+                setScoreHistory(prev => [
+                    { palabra: userWord.toUpperCase(), puntos: data.score },
+                    ...prev
+                ]);
                 setSelectedLetters([]);
-            } else if (data.error) {
-                console.error("Error del backend:", data.error);
+            } else {
+                alert(data.error || (language === "es" ? "Palabra no válida" : "Invalid word"));
             }
         } catch (err) {
             console.error("Error de conexión:", err);
-            const newWord = selectedLetters.map(item => item.letter).join('');
-            const newScore = Math.floor(Math.random() * 10) + 1;
-            setScoreHistory([{ palabra: newWord, puntos: newScore }, ...scoreHistory]);
-            setSelectedLetters([]);
+            alert(language === "es" ? "Error al conectar con el servidor" : "Server connection error");
         }
     };
 
@@ -135,8 +157,27 @@ function Game() {
 
             <div className="game-main-container">
                 <button className="game-home-button" onClick={() => navigate("/")}>
-                    🏡 Home
+                    🏡 {language === "es" ? "Inicio" : "Home"}
                 </button>
+
+                {gameOver && (
+                    <div className="game-over-modal">
+                        <div className="game-over-content">
+                            <h2 style={{ color: 'black' }}>
+                                {language === "es" ? "¡Se ha acabado el tiempo!" : "Time's up!"}
+                            </h2>
+                            <p style={{ color: 'black' }}>
+                                {language === "es" ? "Tu puntaje total es:" : "Your total score is:"} {finalScore}
+                            </p>
+                            <button 
+                                className="reset-game-button"
+                                onClick={resetGame}
+                            >
+                                {language === "es" ? "Jugar de nuevo" : "Play again"}
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 <div className="game-content-center">
                     <div className="title-and-timer">
@@ -153,8 +194,9 @@ function Game() {
                                 row.map((letter, colIndex) => (
                                     <button
                                         key={`${rowIndex}-${colIndex}`}
-                                        className={`letter-button ${isLetterSelected(rowIndex, colIndex) ? 'selected' : ''} ${!showLetters ? 'hidden' : ''}`}
+                                        className={`letter-button ${isLetterSelected(rowIndex, colIndex) ? 'selected' : ''} ${!showLetters || gameOver ? 'hidden' : ''}`}
                                         onClick={() => handleLetterClick(rowIndex, colIndex)}
+                                        disabled={gameOver}
                                     >
                                         {letter}
                                     </button>
@@ -163,13 +205,15 @@ function Game() {
                         </div>
 
                         <div className="score-table-container">
-                            <h3 className="score-table-title">Puntuaciones</h3>
+                            <h3 className="score-table-title">
+                                {language === "es" ? "Puntuaciones" : "Scores"}
+                            </h3>
                             <div className="score-table-scroll">
                                 <table className="score-table">
                                     <thead>
                                         <tr>
-                                            <th>Palabra</th>
-                                            <th>Puntos</th>
+                                            <th>{language === "es" ? "Palabra" : "Word"}</th>
+                                            <th>{language === "es" ? "Puntos" : "Points"}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -186,7 +230,9 @@ function Game() {
                     </div>
 
                     <div className="word-display-container">
-                        <h3 className="word-display-title">Tu palabra:</h3>
+                        <h3 className="word-display-title">
+                            {language === "es" ? "Tu palabra:" : "Your word:"}
+                        </h3>
                         <div className="word-display">
                             {selectedLetters.length > 0 ? (
                                 selectedLetters.map((item, index) => (
@@ -194,7 +240,9 @@ function Game() {
                                 ))
                             ) : (
                                 <span className={`word-display-placeholder ${!showLetters ? 'waiting' : ''}`}>
-                                    {showLetters ? "Selecciona letras" : "Presiona Comenzar"}
+                                    {showLetters ? 
+                                        (language === "es" ? "Selecciona letras" : "Select letters") : 
+                                        (language === "es" ? "Presiona Comenzar" : "Press Start")}
                                 </span>
                             )}
                         </div>
@@ -205,16 +253,18 @@ function Game() {
                             className={`reset-game-button ${!showLetters ? 'start' : ''}`}
                             onClick={resetGame}
                         >
-                            {showLetters ? "Reiniciar Juego" : "Comenzar Juego"}
+                            {showLetters ? 
+                                (language === "es" ? "Reiniciar Juego" : "Reset Game") : 
+                                (language === "es" ? "Comenzar Juego" : "Start Game")}
                         </button>
 
-                        {showLetters && (
+                        {showLetters && !gameOver && (
                             <button
                                 className="submit-button"
                                 onClick={handleSubmit}
                                 disabled={selectedLetters.length === 0 || timeLeft === 0}
                             >
-                                Ingresar
+                                {language === "es" ? "Ingresar" : "Submit"}
                             </button>
                         )}
                     </div>
