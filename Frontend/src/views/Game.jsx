@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { FaVolumeUp, FaVolumeMute } from "react-icons/fa"; // Asegúrate de instalar react-icons
 
 function Game() {
     const navigate = useNavigate();
@@ -13,10 +14,34 @@ function Game() {
         { palabra: "CODIGO", puntos: 6 },
         { palabra: "PUNTOS", puntos: 9 }
     ]);
-    const [timeLeft, setTimeLeft] = useState(180); // 3 minutos en segundos
+    const [timeLeft, setTimeLeft] = useState(180);
     const timerRef = useRef(null);
 
-    // Efecto para el temporizador
+    const audioRef = useRef(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+
+    useEffect(() => {
+        if (audioRef.current) {
+            audioRef.current.volume = 0.1; // Ajusta el volumen aquí
+        }
+    }, []);
+
+    const API_URL = import.meta.env.VITE_API_URL;
+
+    const toggleMusic = () => {
+        if (!audioRef.current) return;
+        if (isPlaying) {
+            audioRef.current.pause();
+        } else {
+            audioRef.current.play();
+        }
+        setIsPlaying(!isPlaying);
+    };
+
+    useEffect(() => {
+        return () => clearInterval(timerRef.current);
+    }, []);
+
     useEffect(() => {
         if (showLetters && timeLeft > 0) {
             timerRef.current = setInterval(() => {
@@ -36,7 +61,7 @@ function Game() {
     function generateRandomGrid() {
         const vowels = "AEIOU";
         const consonants = "BCDFGHJKLMNPQRSTVWXYZ";
-        return Array(5).fill().map(() => 
+        return Array(5).fill().map(() =>
             Array(5).fill().map(() => {
                 const letterPool = Math.random() < 0.4 ? vowels : consonants;
                 return letterPool[Math.floor(Math.random() * letterPool.length)];
@@ -46,10 +71,8 @@ function Game() {
 
     const handleLetterClick = (row, col) => {
         if (!showLetters || timeLeft === 0) return;
-        
         const letter = grid[row][col];
         const position = `${row}-${col}`;
-        
         setSelectedLetters(prev => {
             if (prev.some(item => item.position === position)) {
                 return prev.filter(item => item.position !== position);
@@ -67,47 +90,28 @@ function Game() {
     };
 
     const handleSubmit = async () => {
-        // Palabras fijas para enviar (alterna entre ellas)
-        const testWords = {
-            es: "correr",
-            en: "run" // Añadido por si acaso necesitas inglés
-        };
-    
-        // Seleccionamos la palabra en español
+        const testWords = { es: "correr", en: "run" };
         const wordToSend = testWords.es;
-    
+
         try {
-            const response = await fetch("http://127.0.0.1:5000/api/check", {
+            const response = await fetch(`${API_URL}/api/check`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ 
-                    word: wordToSend,
-                    language: "es" // Fijamos español como idioma
-                }),
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ word: wordToSend, language: "es" }),
             });
-    
+
             const data = await response.json();
-    
+
             if (data.score) {
-                // Mostramos en el historial la palabra que el usuario formó realmente
                 const userWord = selectedLetters.map(item => item.letter).join('');
                 const newScore = data.score;
-    
-                setScoreHistory([{ 
-                    palabra: userWord, 
-                    puntos: newScore 
-                }, ...scoreHistory]);
-    
+                setScoreHistory([{ palabra: userWord, puntos: newScore }, ...scoreHistory]);
                 setSelectedLetters([]);
             } else if (data.error) {
                 console.error("Error del backend:", data.error);
             }
         } catch (err) {
             console.error("Error de conexión:", err);
-    
-            // Fallback: si falla la conexión, usa el sistema actual
             const newWord = selectedLetters.map(item => item.letter).join('');
             const newScore = Math.floor(Math.random() * 10) + 1;
             setScoreHistory([{ palabra: newWord, puntos: newScore }, ...scoreHistory]);
@@ -119,7 +123,6 @@ function Game() {
         return selectedLetters.some(item => item.position === `${row}-${col}`);
     };
 
-    // Formatear el tiempo en MM:SS
     const formatTime = () => {
         const minutes = Math.floor(timeLeft / 60);
         const seconds = timeLeft % 60;
@@ -128,27 +131,25 @@ function Game() {
 
     return (
         <div className="game-jsx-root">
+            <audio ref={audioRef} loop src="/Enemy (from the series Arcane League of Legends).mp3" />
+
             <div className="game-main-container">
-                <button 
-                    className="game-home-button"
-                    onClick={() => navigate("/")}
-                >
+                <button className="game-home-button" onClick={() => navigate("/")}>
                     🏡 Home
                 </button>
 
                 <div className="game-content-center">
                     <div className="title-and-timer">
                         <h1 className="game-title">WordShake</h1>
-                        {showLetters && (
-                            <div className="timer">
-                                {formatTime()}
-                            </div>
-                        )}
+                        {showLetters && <div className="timer">{formatTime()}</div>}
+                        <button onClick={toggleMusic} className="music-toggle-button">
+                            {isPlaying ? <FaVolumeUp /> : <FaVolumeMute />}
+                        </button>
                     </div>
-                    
+
                     <div className="game-main-content">
                         <div className="letter-grid-container">
-                            {grid.map((row, rowIndex) => (
+                            {grid.map((row, rowIndex) =>
                                 row.map((letter, colIndex) => (
                                     <button
                                         key={`${rowIndex}-${colIndex}`}
@@ -158,7 +159,7 @@ function Game() {
                                         {letter}
                                     </button>
                                 ))
-                            ))}
+                            )}
                         </div>
 
                         <div className="score-table-container">
@@ -200,15 +201,15 @@ function Game() {
                     </div>
 
                     <div className="buttons-container">
-                        <button 
+                        <button
                             className={`reset-game-button ${!showLetters ? 'start' : ''}`}
                             onClick={resetGame}
                         >
                             {showLetters ? "Reiniciar Juego" : "Comenzar Juego"}
                         </button>
-                        
+
                         {showLetters && (
-                            <button 
+                            <button
                                 className="submit-button"
                                 onClick={handleSubmit}
                                 disabled={selectedLetters.length === 0 || timeLeft === 0}
