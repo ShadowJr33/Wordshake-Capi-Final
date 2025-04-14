@@ -1,5 +1,7 @@
 from flask import Blueprint, jsonify
-from db import get_db_connection
+from db import get_db
+from models.user import User
+from sqlalchemy.exc import OperationalError  # Importar el error relacionado con la conexión
 
 users_bp = Blueprint('users', __name__)
 
@@ -7,24 +9,25 @@ users_bp = Blueprint('users', __name__)
 def get_usuarios():
     """Endpoint para obtener todos los usuarios"""
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM users;")
-        usuarios = cursor.fetchall()
+        db = next(get_db())  # Intentamos obtener la conexión a la DB
+        usuarios = db.query(User).all()  # Si la conexión es exitosa, obtenemos los usuarios
         
         usuarios_list = []
         for usuario in usuarios:
             usuarios_list.append({
-                "identificación": usuario[0],
-                "nombre": usuario[1],
-                "correo electrónico": usuario[2],
-                "contraseña": usuario[3],
-                "puntaje": usuario[4]
+                "identificación": usuario.id,
+                "nombre": usuario.name,
+                "correo electrónico": usuario.email,
+                "contraseña": usuario.password,
+                "puntaje": usuario.score
             })
         
-        cursor.close()
-        conn.close()
-        
         return jsonify(usuarios_list), 200
+
+    except OperationalError as e:
+        # Captura errores específicos relacionados con la conexión (por ejemplo, sin internet)cesto es del Sprint 4
+        return jsonify({"error": "No se pudo conectar a la base de datos. Verifica tu conexión a Internet."}), 503
+
     except Exception as e:
+        # Captura cualquier otro tipo de error que pueda ocurrir en algun momento especifico
         return jsonify({"error": str(e)}), 500
