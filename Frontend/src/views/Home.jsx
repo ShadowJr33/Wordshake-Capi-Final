@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ThemeToggle from "../components/ThemeToggle";
 import { useTheme } from "../components/ThemeContext";
@@ -14,6 +14,8 @@ function Home() {
     const [showScores, setShowScores] = useState(false);
     const [isRightPanelActive, setIsRightPanelActive] = useState(false);
     const [language, setLanguage] = useState("en");
+    const [difficulty, setDifficulty] = useState("easy");
+    const [scores, setScores] = useState([]);
 
     const [usuario, setUsuario] = useState("");
     const [password, setPassword] = useState("");
@@ -21,17 +23,58 @@ function Home() {
 
     const API_URL = import.meta.env.VITE_API_URL;
 
-    const scores = [
-        { name: "Player 1", score: 100 },
-        { name: "Player 2", score: 90 },
-        { name: "Player 3", score: 80 }
-    ];
-
     const toggleLanguage = () => {
         setLanguage((prevLang) => (prevLang === "en" ? "es" : "en"));
     };
 
-    // En Home.js (cambios mínimos)
+    const fetchScores = async () => {
+        try {
+            const response = await fetch(`${API_URL}/api/top_scores`);
+            const data = await response.json();
+            
+            if (data) {
+                // Transformamos los datos del backend al formato que espera el frontend
+                const transformedScores = [];
+                
+                // Procesamos scores fáciles
+                Object.entries(data.easy).forEach(([name, score]) => {
+                    transformedScores.push({ name, score, difficulty: "easy" });
+                });
+                
+                // Procesamos scores normales
+                Object.entries(data.normal).forEach(([name, score]) => {
+                    transformedScores.push({ name, score, difficulty: "medium" });
+                });
+                
+                // Procesamos scores difíciles
+                Object.entries(data.hard).forEach(([name, score]) => {
+                    transformedScores.push({ name, score, difficulty: "hard" });
+                });
+
+                // Procesamos scores hardcore
+                Object.entries(data.hardcore).forEach(([name, score]) => {
+                    transformedScores.push({ name, score, difficulty: "hardcore" });
+                });
+                
+                // Filtramos según la dificultad seleccionada
+                const filteredScores = transformedScores.filter(
+                    item => item.difficulty === difficulty || 
+                           (difficulty === "medium" && item.difficulty === "normal")
+                ).slice(0, 3);
+                
+                setScores(filteredScores);
+            }
+        } catch (err) {
+            toast.error(language === "en" ? "Error loading scores" : "Error al cargar puntajes");
+        }
+    };
+
+    useEffect(() => {
+        if (showScores) {
+            fetchScores();
+        }
+    }, [showScores, difficulty, language]);
+
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
@@ -47,7 +90,7 @@ function Home() {
 
             if (data.success) {
                 toast.success("Inicio de sesión exitoso");
-                navigate("/game", { state: { language } }); // Pasamos el idioma como estado
+                navigate("/game", { state: { language } });
             } else {
                 toast.error("Usuario o contraseña incorrectos");
             }
@@ -122,10 +165,49 @@ function Home() {
             {showScores && (
                 <div className="container scores-panel">
                     <h3>{language === "en" ? "Top Scores" : "Mejores Puntajes"}</h3>
+                    <div className="difficulty-buttons">
+                        <button 
+                            className={difficulty === "easy" ? "active" : ""} 
+                            onClick={() => setDifficulty("easy")}
+                        >
+                            {language === "en" ? "Easy" : "Fácil"}
+                        </button>
+                        <button 
+                            className={difficulty === "medium" ? "active" : ""} 
+                            onClick={() => setDifficulty("medium")}
+                        >
+                            {language === "en" ? "Medium" : "Medio"}
+                        </button>
+                        <button 
+                            className={difficulty === "hard" ? "active" : ""} 
+                            onClick={() => setDifficulty("hard")}
+                        >
+                            {language === "en" ? "Hard" : "Difícil"}
+                        </button>
+                        <button 
+                            className={difficulty === "hardcore" ? "active" : ""} 
+                            onClick={() => setDifficulty("hardcore")}
+                        >
+                            Hardcore
+                        </button>
+                    </div>
                     <ul>
-                        {scores.map((s, index) => (
-                            <li key={index}>{s.name}: {s.score}</li>
-                        ))}
+                        {scores.length > 0 ? (
+                            scores.map((s, index) => (
+                                <li key={index}>
+                                    {s.name}: {s.score} ({language === "en" ? 
+                                        s.difficulty === "easy" ? "Easy" : 
+                                        s.difficulty === "medium" ? "Medium" : 
+                                        s.difficulty === "hardcore" ? "Hardcore" : "Hard" 
+                                        : 
+                                        s.difficulty === "easy" ? "Fácil" : 
+                                        s.difficulty === "medium" ? "Medio" : 
+                                        s.difficulty === "hardcore" ? "Hardcore" : "Difícil"})
+                                </li>
+                            ))
+                        ) : (
+                            <li>{language === "en" ? "No scores yet" : "No hay puntajes aún"}</li>
+                        )}
                     </ul>
                 </div>
             )}
