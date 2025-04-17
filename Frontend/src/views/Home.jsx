@@ -23,49 +23,57 @@ function Home() {
 
     const API_URL = import.meta.env.VITE_API_URL;
 
+    // Mapeo de niveles por idioma
+    const difficultyMap = {
+        en: {
+            easy: "easy",
+            medium: "normal",
+            hard: "hard",
+            hardcore: "hardcore"
+        },
+        es: {
+            easy: "facil",
+            medium: "normal_2",
+            hard: "dificil",
+            hardcore: "diablo"
+        }
+    };
+
     const toggleLanguage = () => {
-        setLanguage((prevLang) => (prevLang === "en" ? "es" : "en"));
+        setLanguage((prevLang) => {
+            const newLang = prevLang === "en" ? "es" : "en";
+            // Resetear la dificultad al cambiar idioma para evitar conflictos
+            setDifficulty("easy");
+            return newLang;
+        });
     };
 
     const fetchScores = async () => {
         try {
-            const response = await fetch(`${API_URL}/api/top_scores`);
-            const data = await response.json();
-            
-            if (data) {
-                // Transformamos los datos del backend al formato que espera el frontend
-                const transformedScores = [];
-                
-                // Procesamos scores fáciles
-                Object.entries(data.easy).forEach(([name, score]) => {
-                    transformedScores.push({ name, score, difficulty: "easy" });
-                });
-                
-                // Procesamos scores normales
-                Object.entries(data.normal).forEach(([name, score]) => {
-                    transformedScores.push({ name, score, difficulty: "medium" });
-                });
-                
-                // Procesamos scores difíciles
-                Object.entries(data.hard).forEach(([name, score]) => {
-                    transformedScores.push({ name, score, difficulty: "hard" });
-                });
+            const response = await fetch(`${API_URL}/api/top_scores`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    language: language,
+                    level: difficultyMap[language][difficulty]
+                }),
+            });
 
-                // Procesamos scores hardcore
-                Object.entries(data.hardcore).forEach(([name, score]) => {
-                    transformedScores.push({ name, score, difficulty: "hardcore" });
-                });
-                
-                // Filtramos según la dificultad seleccionada
-                const filteredScores = transformedScores.filter(
-                    item => item.difficulty === difficulty || 
-                           (difficulty === "medium" && item.difficulty === "normal")
-                ).slice(0, 3);
-                
-                setScores(filteredScores);
+            const data = await response.json();
+
+            if (response.ok) {
+                setScores(data.top_scores.map(item => ({
+                    name: item.user,
+                    score: item.score,
+                    difficulty: difficulty
+                })));
+            } else {
+                toast.error(data.error || (language === "en" ? "Error loading scores" : "Error al cargar puntajes"));
             }
         } catch (err) {
-            toast.error(language === "en" ? "Error loading scores" : "Error al cargar puntajes");
+            toast.error(language === "en" ? "Connection error" : "Error de conexión");
         }
     };
 
@@ -89,24 +97,26 @@ function Home() {
             const data = await response.json();
 
             if (data.success) {
-                toast.success("Inicio de sesión exitoso");
+                toast.success(language === "en" ? "Login successful" : "Inicio de sesión exitoso");
                 navigate("/game", { state: { language } });
             } else {
-                toast.error("Usuario o contraseña incorrectos");
+                toast.error(language === "en" ? "Incorrect username or password" : "Usuario o contraseña incorrectos");
             }
         } catch (err) {
-            setError("Error en la conexión con el servidor");
+            setError(language === "en" ? "Server connection error" : "Error en la conexión con el servidor");
         }
     };
 
     const validationSchema = Yup.object().shape({
-        registroUsuario: Yup.string().required("El usuario es obligatorio"),
-        registroEmail: Yup.string().email("Email no válido").required("El email es obligatorio"),
+        registroUsuario: Yup.string().required(language === "en" ? "Username is required" : "El usuario es obligatorio"),
+        registroEmail: Yup.string()
+            .email(language === "en" ? "Invalid email" : "Email no válido")
+            .required(language === "en" ? "Email is required" : "El email es obligatorio"),
         registroPassword: Yup.string()
-            .required("La contraseña es obligatoria")
-            .min(5, "La contraseña debe tener mínimo 5 caracteres")
-            .matches(/[A-Z]/, "Debe contener al menos una mayúscula")
-            .matches(/\d/, "Debe contener al menos un número"),
+            .required(language === "en" ? "Password is required" : "La contraseña es obligatoria")
+            .min(5, language === "en" ? "Password must be at least 5 characters" : "La contraseña debe tener mínimo 5 caracteres")
+            .matches(/[A-Z]/, language === "en" ? "Must contain at least one uppercase letter" : "Debe contener al menos una mayúscula")
+            .matches(/\d/, language === "en" ? "Must contain at least one number" : "Debe contener al menos un número"),
     });
 
     const {
@@ -139,12 +149,60 @@ function Home() {
                 reset();
                 setIsRightPanelActive(false);
             } else {
-                toast.error(result.error || "Error en el registro");
+                toast.error(result.error || (language === "en" ? "Registration error" : "Error en el registro"));
             }
         } catch (err) {
-            toast.error("Error al conectar con el servidor");
+            toast.error(language === "en" ? "Error connecting to server" : "Error al conectar con el servidor");
         }
     };
+
+    // Textos traducidos
+    const translations = {
+        en: {
+            welcome: "Welcome to WordShake Capi",
+            topScores: "Top Scores",
+            noScores: "No scores yet",
+            difficulty: {
+                easy: "Easy",
+                medium: "Medium",
+                hard: "Hard",
+                hardcore: "Hardcore"
+            },
+            createAccount: "Create Account",
+            registerText: "or use your username for registration",
+            signIn: "Sign In",
+            useAccount: "or use your account",
+            start: "Start",
+            welcomeBack: "Welcome Back!",
+            loginText: "To keep connected with us please login with your personal info",
+            helloFriend: "Hello, Friend!",
+            registerText2: "Enter your personal details and start journey with us",
+            signUp: "Sign Up"
+        },
+        es: {
+            welcome: "Bienvenido a WordShake Capi",
+            topScores: "Mejores Puntajes",
+            noScores: "No hay puntajes aún",
+            difficulty: {
+                easy: "Fácil",
+                medium: "Medio",
+                hard: "Difícil",
+                hardcore: "Hardcore"
+            },
+            createAccount: "Crear Cuenta",
+            registerText: "o usa tu usuario para registrarte",
+            signIn: "Iniciar Sesión",
+            useAccount: "o usa tu cuenta",
+            start: "Empezar",
+            welcomeBack: "¡Bienvenido de nuevo!",
+            loginText: "Para mantenerte conectado con nosotros, por favor inicia sesión con tu información personal",
+            helloFriend: "¡Hola, Amigo!",
+            registerText2: "Ingresa tus datos personales y comienza el viaje con nosotros",
+            signUp: "Registrarse"
+        }
+    };
+
+    const t = translations[language];
 
     return (
         <div className="home">
@@ -164,82 +222,75 @@ function Home() {
 
             {showScores && (
                 <div className="container scores-panel">
-                    <h3>{language === "en" ? "Top Scores" : "Mejores Puntajes"}</h3>
+                    <h3>{t.topScores}</h3>
                     <div className="difficulty-buttons">
                         <button 
                             className={difficulty === "easy" ? "active" : ""} 
                             onClick={() => setDifficulty("easy")}
                         >
-                            {language === "en" ? "Easy" : "Fácil"}
+                            {t.difficulty.easy}
                         </button>
                         <button 
                             className={difficulty === "medium" ? "active" : ""} 
                             onClick={() => setDifficulty("medium")}
                         >
-                            {language === "en" ? "Medium" : "Medio"}
+                            {t.difficulty.medium}
                         </button>
                         <button 
                             className={difficulty === "hard" ? "active" : ""} 
                             onClick={() => setDifficulty("hard")}
                         >
-                            {language === "en" ? "Hard" : "Difícil"}
+                            {t.difficulty.hard}
                         </button>
                         <button 
                             className={difficulty === "hardcore" ? "active" : ""} 
                             onClick={() => setDifficulty("hardcore")}
                         >
-                            Hardcore
+                            {t.difficulty.hardcore}
                         </button>
                     </div>
                     <ul>
                         {scores.length > 0 ? (
                             scores.map((s, index) => (
                                 <li key={index}>
-                                    {s.name}: {s.score} ({language === "en" ? 
-                                        s.difficulty === "easy" ? "Easy" : 
-                                        s.difficulty === "medium" ? "Medium" : 
-                                        s.difficulty === "hardcore" ? "Hardcore" : "Hard" 
-                                        : 
-                                        s.difficulty === "easy" ? "Fácil" : 
-                                        s.difficulty === "medium" ? "Medio" : 
-                                        s.difficulty === "hardcore" ? "Hardcore" : "Difícil"})
+                                    {s.name}: {s.score} ({t.difficulty[s.difficulty]})
                                 </li>
                             ))
                         ) : (
-                            <li>{language === "en" ? "No scores yet" : "No hay puntajes aún"}</li>
+                            <li>{t.noScores}</li>
                         )}
                     </ul>
                 </div>
             )}
 
-            <h2>{language === "en" ? "Welcome to WordShake Capi" : "Bienvenido a WordShake Capi"}</h2>
+            <h2>{t.welcome}</h2>
 
             <div className={`container ${isRightPanelActive ? "right-panel-active" : ""}`}>
                 <div className="form-container sign-up-container">
                     <form onSubmit={handleSubmit(handleRegister)}>
-                        <h1>{language === "en" ? "Create Account" : "Crear Cuenta"}</h1>
-                        <span>{language === "en" ? "or use your username for registration" : "o usa tu usuario para registrarte"}</span>
+                        <h1>{t.createAccount}</h1>
+                        <span>{t.registerText}</span>
 
-                        <input type="text" placeholder="Usuario" {...register("registroUsuario")} />
+                        <input type="text" placeholder={language === "en" ? "Username" : "Usuario"} {...register("registroUsuario")} />
                         <p className="error">{errors.registroUsuario?.message}</p>
 
-                        <input type="email" placeholder="Correo Electrónico" {...register("registroEmail")} />
+                        <input type="email" placeholder={language === "en" ? "Email" : "Correo Electrónico"} {...register("registroEmail")} />
                         <p className="error">{errors.registroEmail?.message}</p>
 
-                        <input type="password" placeholder="Contraseña" {...register("registroPassword")} />
+                        <input type="password" placeholder={language === "en" ? "Password" : "Contraseña"} {...register("registroPassword")} />
                         <p className="error">{errors.registroPassword?.message}</p>
 
-                        <button type="submit">{language === "en" ? "Create" : "Crear"}</button>
+                        <button type="submit">{t.createAccount}</button>
                     </form>
                 </div>
 
                 <div className="form-container sign-in-container">
                     <form onSubmit={handleLogin}>
-                        <h1>{language === "en" ? "Sign In" : "Iniciar Sesión"}</h1>
-                        <span>{language === "en" ? "or use your account" : "o usa tu cuenta"}</span>
+                        <h1>{t.signIn}</h1>
+                        <span>{t.useAccount}</span>
                         <input type="text" placeholder={language === "en" ? "Username" : "Usuario"} value={usuario} onChange={(e) => setUsuario(e.target.value)} />
                         <input type="password" placeholder={language === "en" ? "Password" : "Contraseña"} value={password} onChange={(e) => setPassword(e.target.value)} />
-                        <button type="submit">{language === "en" ? "Start" : "Empezar"}</button>
+                        <button type="submit">{t.start}</button>
                         {error && <p style={{ color: "red" }}>{error}</p>}
                     </form>
                 </div>
@@ -247,17 +298,17 @@ function Home() {
                 <div className="overlay-container">
                     <div className="overlay">
                         <div className="overlay-panel overlay-left">
-                            <h1>{language === "en" ? "Welcome Back!" : "¡Bienvenido de nuevo!"}</h1>
-                            <p>{language === "en" ? "To keep connected with us please login with your personal info" : "Para mantenerte conectado con nosotros, por favor inicia sesión con tu información personal"}</p>
+                            <h1>{t.welcomeBack}</h1>
+                            <p>{t.loginText}</p>
                             <button className="ghost" onClick={() => setIsRightPanelActive(false)}>
-                                {language === "en" ? "Sign In" : "Iniciar Sesión"}
+                                {t.signIn}
                             </button>
                         </div>
                         <div className="overlay-panel overlay-right">
-                            <h1>{language === "en" ? "Hello, Friend!" : "¡Hola, Amigo!"}</h1>
-                            <p>{language === "en" ? "Enter your personal details and start journey with us" : "Ingresa tus datos personales y comienza el viaje con nosotros"}</p>
+                            <h1>{t.helloFriend}</h1>
+                            <p>{t.registerText2}</p>
                             <button className="ghost" onClick={() => setIsRightPanelActive(true)}>
-                                {language === "en" ? "Sign Up" : "Registrarse"}
+                                {t.signUp}
                             </button>
                         </div>
                     </div>
