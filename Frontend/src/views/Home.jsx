@@ -50,30 +50,44 @@ function Home() {
 
     const fetchScores = async () => {
         try {
-            const response = await fetch(`${API_URL}/api/top_scores`, {
+            const query = `
+                query {
+                    topScores(language: "${language}", level: "${difficultyMap[language][difficulty]}") {
+                        userName
+                        score
+                    }
+                }
+            `;
+
+            const response = await fetch(`${API_URL}/graphql`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    language: language,
-                    level: difficultyMap[language][difficulty]
+                    query
                 }),
             });
 
-            const data = await response.json();
+            const { data, errors } = await response.json();
 
-            if (response.ok) {
-                setScores(data.top_scores.map(item => ({
-                    name: item.user,
-                    score: item.score,
+            if (errors) {
+                throw new Error(errors[0].message);
+            }
+
+            if (data && data.topScores) {
+                setScores(data.topScores.map(item => ({
+                    name: item.userName || "Unknown",
+                    score: item.score || 0,
                     difficulty: difficulty
                 })));
             } else {
-                toast.error(data.error || (language === "en" ? "Error loading scores" : "Error al cargar puntajes"));
+                setScores([]);
             }
         } catch (err) {
-            toast.error(language === "en" ? "Connection error" : "Error de conexión");
+            console.error("GraphQL Error:", err);
+            toast.error(err.message || (language === "en" ? "Error loading scores" : "Error al cargar puntajes"));
+            setScores([]);
         }
     };
 
