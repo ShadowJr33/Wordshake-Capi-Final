@@ -822,3 +822,90 @@ footer a {
   padding: 8px 0;
   border-bottom: 1px solid #eee;
 }
+
+/* Modal de selección de dificultad */
+.difficulty-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.difficulty-modal-content {
+  background: var(--background-color);
+  padding: 2rem;
+  border-radius: 10px;
+  width: 80%;
+  max-width: 500px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+.difficulty-modal h2 {
+  margin-bottom: 1.5rem;
+  color: var(--text-color);
+  font-size: 1.5rem;
+}
+
+.difficulty-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.difficulty-options button {
+  padding: 1rem;
+  border: none;
+  border-radius: 8px;
+  background-color: var(--button-background);
+  color: var(--text-color);
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.difficulty-options button:hover {
+  background-color: var(--button-hover);
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.difficulty-options button:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes modalFadeIn {
+  from {
+      opacity: 0;
+      transform: translateY(-20px);
+  }
+  to {
+      opacity: 1;
+      transform: translateY(0);
+  }
+}
+
+:root {
+  --background-color: #ffffff;
+  --text-color: #333333;
+  --button-background: #f6f6f6;
+  --button-hover: #e0e0e0;
+}
+
+.dark {
+  --background-color: #1e1e1e;
+  --text-color: #ffffff;
+  --button-background: #2d2d2d;
+  --button-hover: #3d3d3d;
+}

@@ -6,18 +6,26 @@ function Game() {
     const navigate = useNavigate();
     const location = useLocation();
     const [selectedLetters, setSelectedLetters] = useState([]);
-    const [grid, setGrid] = useState(generateRandomGrid());
+    const [grid, setGrid] = useState([]);
     const [showLetters, setShowLetters] = useState(false);
     const [scoreHistory, setScoreHistory] = useState([]);
-    const [timeLeft, setTimeLeft] = useState(180);
+    const [timeLeft, setTimeLeft] = useState(0);
     const [gameOver, setGameOver] = useState(false);
     const [finalScore, setFinalScore] = useState(0);
+    const [topPosition, setTopPosition] = useState(null);
     const timerRef = useRef(null);
     const [usedWords, setUsedWords] = useState(new Set());
     const [language, setLanguage] = useState(location.state?.language || "es");
+    const [difficulty, setDifficulty] = useState(location.state?.difficulty || "facil");
 
     const audioRef = useRef(null);
     const [isPlaying, setIsPlaying] = useState(false);
+
+    // Agrega esto al inicio del archivo, después de los imports
+    const VALID_LEVELS = {
+        en: ['easy', 'normal', 'hard', 'hardcore'],
+        es: ['facil', 'normal_2', 'dificil', 'diablo']
+    };
 
     useEffect(() => {
         if (audioRef.current) {
@@ -26,6 +34,57 @@ function Game() {
     }, []);
 
     const API_URL = import.meta.env.VITE_API_URL;
+
+    // Configuración según dificultad
+    const difficultySettings = {
+        easy: {
+            gridSize: 6,
+            timeLimit: 180,
+            vowelProbability: 0.4
+        },
+        normal: {
+            gridSize: 5,
+            timeLimit: 180,
+            vowelProbability: 0.35
+        },
+        hard: {
+            gridSize: 4,
+            timeLimit: 120,
+            vowelProbability: 0.3
+        },
+        hardcore: {
+            gridSize: 4,
+            timeLimit: 60,
+            vowelProbability: 0.25
+        },
+        facil: {
+            gridSize: 6,
+            timeLimit: 180,
+            vowelProbability: 0.4
+        },
+        normal_2: {
+            gridSize: 5,
+            timeLimit: 180,
+            vowelProbability: 0.35
+        },
+        dificil: {
+            gridSize: 4,
+            timeLimit: 120,
+            vowelProbability: 0.3
+        },
+        diablo: {
+            gridSize: 4,
+            timeLimit: 60,
+            vowelProbability: 0.25
+        }
+    };
+
+    useEffect(() => {
+        // Inicializar el juego con la configuración de dificultad
+        const settings = difficultySettings[difficulty];
+        setTimeLeft(settings.timeLimit);
+        setGrid(generateRandomGrid(settings.gridSize, settings.vowelProbability));
+    }, [difficulty]);
 
     const toggleMusic = () => {
         if (isPlaying) {
@@ -58,20 +117,74 @@ function Game() {
         return () => clearInterval(timerRef.current);
     }, [showLetters, timeLeft]);
 
-    function generateRandomGrid() {
-        const vowels = "AEIOU";
-        const consonants = "BCDFGHJKLMNPQRSTVWXYZ";
-        return Array(5).fill().map(() =>
-            Array(5).fill().map(() => {
-                const letterPool = Math.random() < 0.4 ? vowels : consonants;
+    function generateRandomGrid(size, vowelProbability) {
+        const vowels = language === "es" ? "AEIOU" : "AEIOU";
+        const consonants = language === "es" ? "BCDFGHJKLMNÑPQRSTVWXYZ" : "BCDFGHJKLMNPQRSTVWXYZ";
+        return Array(size).fill().map(() =>
+            Array(size).fill().map(() => {
+                const letterPool = Math.random() < vowelProbability ? vowels : consonants;
                 return letterPool[Math.floor(Math.random() * letterPool.length)];
             })
         );
     }
 
-    const calculateFinalScore = () => {
+    // En el componente Game.jsx, modifica la función calculateFinalScore así:
+
+    const calculateFinalScore = async () => {
         const total = scoreHistory.reduce((sum, item) => sum + item.puntos, 0);
         setFinalScore(total);
+        
+        try {
+            const userId = localStorage.getItem('userId');
+            
+            if (!userId || isNaN(parseInt(userId))) {
+                console.error("ID de usuario inválido en localStorage:", userId);
+                // Eliminamos el alert aquí
+                return;
+            }
+    
+            if (!VALID_LEVELS[language].includes(difficulty)) {
+                console.error(`Nivel ${difficulty} no válido para idioma ${language}`);
+                // Eliminamos el alert aquí
+                return;
+            }
+    
+            const requestBody = {
+                user_id: parseInt(userId),
+                language: language,
+                level: difficulty,
+                score: total
+            };
+    
+            const response = await fetch(`${API_URL}/api/update_score`, {
+                method: "PATCH",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                body: JSON.stringify(requestBody)
+            });
+    
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error("Error en la respuesta:", errorData);
+                // Eliminamos el alert aquí
+                return;
+            }
+    
+            const data = await response.json();
+            
+            if (data.message && data.message.includes('top')) {
+                const positionMatch = data.message.match(/top (\d+)/);
+                if (positionMatch) {
+                    setTopPosition(parseInt(positionMatch[1]));
+                    // Eliminamos el alert aquí ya que se mostrará en el modal
+                }
+            }
+        } catch (err) {
+            console.error("Error al guardar puntaje:", err);
+            // Eliminamos el alert aquí
+        }
     };
 
     const handleLetterClick = (row, col) => {
@@ -88,14 +201,16 @@ function Game() {
 
     const resetGame = () => {
         clearInterval(timerRef.current);
+        const settings = difficultySettings[difficulty];
         setSelectedLetters([]);
-        setGrid(generateRandomGrid());
+        setGrid(generateRandomGrid(settings.gridSize, settings.vowelProbability));
         setShowLetters(true);
-        setTimeLeft(180);
+        setTimeLeft(settings.timeLimit);
         setScoreHistory([]);
         setUsedWords(new Set());
         setGameOver(false);
         setFinalScore(0);
+        setTopPosition(null);
     };
 
     const handleSubmit = async () => {
@@ -119,7 +234,8 @@ function Game() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ 
                     word: userWord, 
-                    language: language
+                    language: language,
+                    difficulty: difficulty
                 }),
             });
 
@@ -151,6 +267,47 @@ function Game() {
         return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     };
 
+    const getGridStyle = () => {
+        const settings = difficultySettings[difficulty];
+        return {
+            gridTemplateColumns: `repeat(${settings.gridSize}, 1fr)`,
+            gridTemplateRows: `repeat(${settings.gridSize}, 1fr)`,
+            ...(difficulty === "easy" || difficulty === "facil" ? {
+                gap: '8px',
+                padding: '10px'
+            } : {})
+        };
+    };
+
+    const GameOverModal = () => (
+        <div className="game-over-modal">
+            <div className="game-over-content">
+                <h2 style={{ color: 'black' }}>
+                    {language === "es" ? "¡Se ha acabado el tiempo!" : "Time's up!"}
+                </h2>
+                <p style={{ color: 'black' }}>
+                    {language === "es" ? "Tu puntaje total es:" : "Your total score is:"} {finalScore}
+                </p>
+                <p style={{ color: 'black' }}>
+                    {language === "es" ? "Dificultad:" : "Difficulty:"} {difficulty}
+                </p>
+                {topPosition && (
+                    <p style={{ color: 'black', fontWeight: 'bold' }}>
+                        {language === "es" 
+                            ? `¡Estás en el puesto ${topPosition} del top 10!` 
+                            : `You're in position ${topPosition} of the top 10!`}
+                    </p>
+                )}
+                <button 
+                    className="reset-game-button"
+                    onClick={resetGame}
+                >
+                    {language === "es" ? "Jugar de nuevo" : "Play again"}
+                </button>
+            </div>
+        </div>
+    );
+
     return (
         <div className="game-jsx-root">
             <audio ref={audioRef} loop src="/Enemy (from the series Arcane League of Legends).mp3" />
@@ -160,36 +317,23 @@ function Game() {
                     🏡 {language === "es" ? "Inicio" : "Home"}
                 </button>
 
-                {gameOver && (
-                    <div className="game-over-modal">
-                        <div className="game-over-content">
-                            <h2 style={{ color: 'black' }}>
-                                {language === "es" ? "¡Se ha acabado el tiempo!" : "Time's up!"}
-                            </h2>
-                            <p style={{ color: 'black' }}>
-                                {language === "es" ? "Tu puntaje total es:" : "Your total score is:"} {finalScore}
-                            </p>
-                            <button 
-                                className="reset-game-button"
-                                onClick={resetGame}
-                            >
-                                {language === "es" ? "Jugar de nuevo" : "Play again"}
-                            </button>
-                        </div>
-                    </div>
-                )}
+                {gameOver && <GameOverModal />}
 
                 <div className="game-content-center">
                     <div className="title-and-timer">
                         <h1 className="game-title">WordShake</h1>
-                        {showLetters && <div className="timer">{formatTime()}</div>}
+                        {showLetters && (
+                            <div className="timer-container">
+                                <div className="timer">{formatTime()}</div>
+                            </div>
+                        )}
                         <button onClick={toggleMusic} className="music-toggle-button">
                             {isPlaying ? <FaVolumeUp /> : <FaVolumeMute />}
                         </button>
                     </div>
 
                     <div className="game-main-content">
-                        <div className="letter-grid-container">
+                        <div className="letter-grid-container" style={getGridStyle()}>
                             {grid.map((row, rowIndex) =>
                                 row.map((letter, colIndex) => (
                                     <button
@@ -197,6 +341,13 @@ function Game() {
                                         className={`letter-button ${isLetterSelected(rowIndex, colIndex) ? 'selected' : ''} ${!showLetters || gameOver ? 'hidden' : ''}`}
                                         onClick={() => handleLetterClick(rowIndex, colIndex)}
                                         disabled={gameOver}
+                                        style={
+                                            (difficulty === "easy" || difficulty === "facil") ? {
+                                                width: '40px',  
+                                                height: '45px', 
+                                                fontSize: '1.2rem' 
+                                            } : {}
+                                        }
                                     >
                                         {letter}
                                     </button>

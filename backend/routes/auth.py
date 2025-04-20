@@ -18,15 +18,16 @@ def login():
         user = get_user_by_name(usuario)
         
         if user:
-            # solamente se compara la contraseña hasheada con la contraseña que el usuario ingreso
-            # esto es para evitar que se compare la contraseña en texto plano
             if check_password_hash(user.password, contrasenia):
-                return jsonify({"success": True})
-
+                # Devuelve el ID del usuario en la respuesta
+                return jsonify({
+                    "success": True,
+                    "user_id": user.id  # Asegúrate de que esto coincida con tu modelo
+                })
+        
         return jsonify({"success": False})
     
     except OperationalError:
         return jsonify({"error": "No se pudo conectar a la base de datos. Verifica tu conexión a Internet o el servidor de base de datos."}), 503
-
     except Exception as e:
         return jsonify({"error": str(e)}), 500

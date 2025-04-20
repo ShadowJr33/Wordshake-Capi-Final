@@ -16,6 +16,7 @@ function Home() {
     const [language, setLanguage] = useState("en");
     const [difficulty, setDifficulty] = useState("easy");
     const [scores, setScores] = useState([]);
+    const [showDifficultyModal, setShowDifficultyModal] = useState(false);
 
     const [usuario, setUsuario] = useState("");
     const [password, setPassword] = useState("");
@@ -97,6 +98,7 @@ function Home() {
         }
     }, [showScores, difficulty, language]);
 
+    // En Home.jsx, modifica el handleLogin:
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
@@ -107,19 +109,46 @@ function Home() {
                 },
                 body: JSON.stringify({ name: usuario, password }),
             });
-
+    
             const data = await response.json();
-
+    
             if (data.success) {
                 toast.success(language === "en" ? "Login successful" : "Inicio de sesión exitoso");
-                navigate("/game", { state: { language } });
+                
+                // Asegúrate de que data.user_id existe y es un número
+                if (data.user_id) {
+                    localStorage.setItem('userId', data.user_id.toString()); // Guardar como string
+                    console.log("User ID guardado:", data.user_id); // Para depuración
+                } else {
+                    console.error("El servidor no devolvió un user_id");
+                }
+                
+                setShowDifficultyModal(true);
             } else {
                 toast.error(language === "en" ? "Incorrect username or password" : "Usuario o contraseña incorrectos");
             }
         } catch (err) {
             setError(language === "en" ? "Server connection error" : "Error en la conexión con el servidor");
+            console.error("Error en login:", err);
         }
     };
+
+    const handleDifficultySelect = (selectedDifficulty) => {
+        const userId = localStorage.getItem('userId');
+        if (!userId) {
+            console.error("userId no disponible al seleccionar dificultad");
+            return;
+        }
+    
+        navigate("/game", { 
+            state: { 
+                userId,
+                language,
+                difficulty: difficultyMap[language][selectedDifficulty]
+            } 
+        });
+    };
+    
 
     const validationSchema = Yup.object().shape({
         registroUsuario: Yup.string().required(language === "en" ? "Username is required" : "El usuario es obligatorio"),
@@ -191,7 +220,9 @@ function Home() {
             loginText: "To keep connected with us please login with your personal info",
             helloFriend: "Hello, Friend!",
             registerText2: "Enter your personal details and start journey with us",
-            signUp: "Sign Up"
+            signUp: "Sign Up",
+            selectDifficulty: "Select Difficulty",
+            chooseLevel: "Choose your challenge level"
         },
         es: {
             welcome: "Bienvenido a WordShake Capi",
@@ -212,7 +243,9 @@ function Home() {
             loginText: "Para mantenerte conectado con nosotros, por favor inicia sesión con tu información personal",
             helloFriend: "¡Hola, Amigo!",
             registerText2: "Ingresa tus datos personales y comienza el viaje con nosotros",
-            signUp: "Registrarse"
+            signUp: "Registrarse",
+            selectDifficulty: "Selecciona Dificultad",
+            chooseLevel: "Elige tu nivel de desafío"
         }
     };
 
@@ -274,6 +307,29 @@ function Home() {
                             <li>{t.noScores}</li>
                         )}
                     </ul>
+                </div>
+            )}
+
+            {showDifficultyModal && (
+                <div className="difficulty-modal">
+                    <div className="difficulty-modal-content">
+                        <h2>{t.selectDifficulty}</h2>
+                        <p>{t.chooseLevel}</p>
+                        <div className="difficulty-options">
+                            <button onClick={() => handleDifficultySelect("easy")}>
+                                {t.difficulty.easy}
+                            </button>
+                            <button onClick={() => handleDifficultySelect("medium")}>
+                                {t.difficulty.medium}
+                            </button>
+                            <button onClick={() => handleDifficultySelect("hard")}>
+                                {t.difficulty.hard}
+                            </button>
+                            <button onClick={() => handleDifficultySelect("hardcore")}>
+                                {t.difficulty.hardcore}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 
