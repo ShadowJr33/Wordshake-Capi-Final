@@ -17,11 +17,11 @@ function Game() {
     const [usedWords, setUsedWords] = useState(new Set());
     const [language, setLanguage] = useState(location.state?.language || "es");
     const [difficulty, setDifficulty] = useState(location.state?.difficulty || "facil");
+    const [bestWord, setBestWord] = useState(null);
 
     const audioRef = useRef(null);
     const [isPlaying, setIsPlaying] = useState(false);
 
-    // Agrega esto al inicio del archivo, después de los imports
     const VALID_LEVELS = {
         en: ['easy', 'normal', 'hard', 'hardcore'],
         es: ['facil', 'normal_2', 'dificil', 'diablo']
@@ -35,7 +35,6 @@ function Game() {
 
     const API_URL = import.meta.env.VITE_API_URL;
 
-    // Configuración según dificultad
     const difficultySettings = {
         easy: {
             gridSize: 6,
@@ -80,7 +79,6 @@ function Game() {
     };
 
     useEffect(() => {
-        // Inicializar el juego con la configuración de dificultad
         const settings = difficultySettings[difficulty];
         setTimeLeft(settings.timeLimit);
         setGrid(generateRandomGrid(settings.gridSize, settings.vowelProbability));
@@ -128,24 +126,27 @@ function Game() {
         );
     }
 
-    // En el componente Game.jsx, modifica la función calculateFinalScore así:
-
     const calculateFinalScore = async () => {
         const total = scoreHistory.reduce((sum, item) => sum + item.puntos, 0);
         setFinalScore(total);
+        
+        // Encontrar la mejor palabra
+        if (scoreHistory.length > 0) {
+            const best = scoreHistory.reduce((max, item) => 
+                item.puntos > max.puntos ? item : max, scoreHistory[0]);
+            setBestWord(best);
+        }
         
         try {
             const userId = localStorage.getItem('userId');
             
             if (!userId || isNaN(parseInt(userId))) {
                 console.error("ID de usuario inválido en localStorage:", userId);
-                // Eliminamos el alert aquí
                 return;
             }
     
             if (!VALID_LEVELS[language].includes(difficulty)) {
                 console.error(`Nivel ${difficulty} no válido para idioma ${language}`);
-                // Eliminamos el alert aquí
                 return;
             }
     
@@ -168,7 +169,6 @@ function Game() {
             if (!response.ok) {
                 const errorData = await response.json();
                 console.error("Error en la respuesta:", errorData);
-                // Eliminamos el alert aquí
                 return;
             }
     
@@ -178,12 +178,10 @@ function Game() {
                 const positionMatch = data.message.match(/top (\d+)/);
                 if (positionMatch) {
                     setTopPosition(parseInt(positionMatch[1]));
-                    // Eliminamos el alert aquí ya que se mostrará en el modal
                 }
             }
         } catch (err) {
             console.error("Error al guardar puntaje:", err);
-            // Eliminamos el alert aquí
         }
     };
 
@@ -211,6 +209,7 @@ function Game() {
         setGameOver(false);
         setFinalScore(0);
         setTopPosition(null);
+        setBestWord(null);
     };
 
     const handleSubmit = async () => {
@@ -282,22 +281,56 @@ function Game() {
     const GameOverModal = () => (
         <div className="game-over-modal">
             <div className="game-over-content">
-                <h2 style={{ color: 'black' }}>
+                <h2>
                     {language === "es" ? "¡Se ha acabado el tiempo!" : "Time's up!"}
                 </h2>
-                <p style={{ color: 'black' }}>
-                    {language === "es" ? "Tu puntaje total es:" : "Your total score is:"} {finalScore}
-                </p>
-                <p style={{ color: 'black' }}>
-                    {language === "es" ? "Dificultad:" : "Difficulty:"} {difficulty}
-                </p>
-                {topPosition && (
-                    <p style={{ color: 'black', fontWeight: 'bold' }}>
-                        {language === "es" 
-                            ? `¡Estás en el puesto ${topPosition} del top 10!` 
-                            : `You're in position ${topPosition} of the top 10!`}
-                    </p>
-                )}
+                
+                <div className="game-summary-container">
+                    {/* Resumen general */}
+                    <div className="summary-card general-summary">
+                        <h3>{language === "es" ? "Resumen del Juego" : "Game Summary"}</h3>
+                        <div className="summary-item">
+                            <span>{language === "es" ? "Puntaje Total:" : "Total Score:"}</span>
+                            <span className="highlight">{finalScore}</span>
+                        </div>
+                        <div className="summary-item">
+                            <span>{language === "es" ? "Palabras Encontradas:" : "Words Found:"}</span>
+                            <span className="highlight">{scoreHistory.length}</span>
+                        </div>
+                        <div className="summary-item">
+                            <span>{language === "es" ? "Dificultad:" : "Difficulty:"}</span>
+                            <span className="highlight">{difficulty}</span>
+                        </div>
+                        {topPosition && (
+                            <div className="summary-item top-position">
+                                <span>🏆 {language === "es" ? "Posición en el Top:" : "Top Position:"}</span>
+                                <span className="highlight">{topPosition}</span>
+                            </div>
+                        )}
+                    </div>
+                    
+                    {/* Mejor palabra */}
+                    {bestWord && (
+                        <div className="summary-card best-word">
+                            <h3>{language === "es" ? "Mejor Palabra" : "Best Word"}</h3>
+                            <div className="best-word-display">
+                                <span className="word">{bestWord.palabra}</span>
+                                <span className="points">+{bestWord.puntos} pts</span>
+                            </div>
+                            <div className="word-stats">
+                                <div>
+                                    <span>{language === "es" ? "Longitud:" : "Length:"}</span>
+                                    <span>{bestWord.palabra.length}</span>
+                                </div>
+                                <div>
+                                    <span>{language === "es" ? "Puntos:" : "Points:"}</span>
+                                    <span>{bestWord.puntos}</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+                
                 <button 
                     className="reset-game-button"
                     onClick={resetGame}
