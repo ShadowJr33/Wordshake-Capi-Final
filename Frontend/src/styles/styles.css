@@ -14,7 +14,7 @@ body {
   font-family: 'Montserrat', sans-serif;
   height: 100vh;
   margin: -20px 0 50px;
-  transition: background-color 0.3s, color 0.3s;
+  transition: background-color 0.5s ease, color 0.5s ease;
 }
 
 h2 {
@@ -87,6 +87,67 @@ body.tema-claro footer a {
   color: #6D597A;
 }
 
+body.tema-claro .game-jsx-root {
+  background: linear-gradient(135deg, #FF758F, #D291BC),
+    url('data:image/svg+xml;utf8,<svg opacity="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M30,30 Q50,10 70,30 T90,50 T70,70 T50,90 T30,70 T10,50 T30,30 Z" fill="%23ffffff"/></svg>');
+  background-size: cover;
+  background-repeat: no-repeat;
+  color: var(--crema);
+  transition: background-color 0.5s ease, color 0.5s ease;
+}
+
+body.tema-claro .letter-grid-container {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+body.tema-claro .letter-button {
+  background: rgba(255, 255, 255, 0.9);
+  color: #6D597A;
+  border-color: #D291BC;
+}
+
+body.tema-claro .letter-button.selected {
+  background: #FF758F;
+  color: #FFFFFF;
+  border-color: #D291BC;
+}
+
+body.tema-claro .score-table-container {
+  background: #FFFFFF;
+  color: #6D597A;
+}
+
+body.tema-claro .score-table th {
+  background: #FF758F;
+  color: #FFFFFF;
+}
+
+body.tema-claro .score-table td {
+  color: #6D597A;
+}
+
+body.tema-claro .music-menu-button,
+body.tema-claro .music-toggle-button {
+  background: #FF758F;
+  color: #FFFFFF;
+}
+
+body.tema-claro .music-menu {
+  background: #FFFFFF;
+  color: #6D597A;
+}
+
+body.tema-claro .song-item {
+  background: #F8C8DC;
+  color: #6D597A;
+}
+
+body.tema-claro .song-item.selected {
+  background: #FF758F;
+  color: #FFFFFF;
+}
+
 /* Tema Oscuro */
 body.tema-oscuro {
   background: #121212;
@@ -146,6 +207,67 @@ body.tema-oscuro footer {
 
 body.tema-oscuro footer a {
   color: #e74c3c;
+}
+
+body.tema-oscuro .game-jsx-root {
+  background: linear-gradient(135deg, #690707, #000000),
+    url('data:image/svg+xml;utf8,<svg opacity="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M30,30 Q50,10 70,30 T90,50 T70,70 T50,90 T30,70 T10,50 T30,30 Z" fill="%23ffffff"/></svg>');
+  background-size: cover;
+  background-repeat: no-repeat;
+  color: #f1f1f1;
+  transition: background-color 0.5s ease, color 0.5s ease;
+}
+
+body.tema-oscuro .letter-grid-container {
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.tema-oscuro .letter-button {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f1f1f1;
+  border-color: #e74c3c;
+}
+
+body.tema-oscuro .letter-button.selected {
+  background: #e74c3c;
+  color: #FFFFFF;
+  border-color: #f1c40f;
+}
+
+body.tema-oscuro .score-table-container {
+  background: #222222;
+  color: #f1f1f1;
+}
+
+body.tema-oscuro .score-table th {
+  background: #e74c3c;
+  color: #FFFFFF;
+}
+
+body.tema-oscuro .score-table td {
+  color: #bbb;
+}
+
+body.tema-oscuro .music-menu-button,
+body.tema-oscuro .music-toggle-button {
+  background: #e74c3c;
+  color: #FFFFFF;
+}
+
+body.tema-oscuro .music-menu {
+  background: #1f1f1f;
+  color: #f1f1f1;
+}
+
+body.tema-oscuro .song-item {
+  background: #333333;
+  color: #f1f1f1;
+}
+
+body.tema-oscuro .song-item.selected {
+  background: #e74c3c;
+  color: #FFFFFF;
 }
 
 /* Estilos comunes (no dependen del tema) */
@@ -303,7 +425,7 @@ input {
   margin: 20px 0;
 }
 
-.social-container a {
+social-container a {
   border: 1px solid #DDDDDD;
   border-radius: 50%;
   display: inline-flex;
@@ -373,6 +495,7 @@ footer a {
   overflow: hidden;
   font-family: 'Montserrat', sans-serif;
   color: var(--crema);
+  transition: background-color 0.5s ease, color 0.5s ease;
 }
 
 .game-main-container {
@@ -1128,4 +1251,76 @@ body.tema-oscuro .word-stats span:last-child {
   --text-color: #ffffff;
   --button-background: #2d2d2d;
   --button-hover: #3d3d3d;
+}
+
+/* Estilos para los controles de música */
+.music-controls {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  gap: 10px;
+  z-index: 1000;
+}
+
+.music-menu-button, .music-toggle-button {
+  background: #4CAF50;
+  border: none;
+  padding: 10px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  color: white;
+  transition: transform 0.2s, background 0.3s;
+}
+
+.music-menu-button:hover, .music-toggle-button:hover {
+  transform: scale(1.1);
+  background: #45a049;
+}
+
+.music-menu {
+  position: absolute;
+  right: 0;
+  top: 50px;
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  width: 200px;
+  z-index: 1001;
+}
+
+.songs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.song-item {
+  background: #f0f0f0;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s;
+  font-size: 14px;
+}
+
+.song-item.selected {
+  background: #4CAF50;
+  color: white;
+}
+
+.song-item:hover {
+  background: #e0e0e0;
+}
+
+.song-item.selected:hover {
+  background: #45a049;
 }

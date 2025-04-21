@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { FaVolumeUp, FaVolumeMute } from "react-icons/fa";
+import { FaVolumeUp, FaVolumeMute, FaMusic } from "react-icons/fa";
+import ThemeToggle from "../components/ThemeToggle";
+import { useTheme } from "../components/ThemeContext";
 
 function Game() {
     const navigate = useNavigate();
@@ -18,13 +20,37 @@ function Game() {
     const [language, setLanguage] = useState(location.state?.language || "es");
     const [difficulty, setDifficulty] = useState(location.state?.difficulty || "facil");
     const [bestWord, setBestWord] = useState(null);
-
+    
+    // Estados para el sistema de música
     const audioRef = useRef(null);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [songs] = useState([
+        { title: "Wii Shop", file: "/Wii Shop Channel Main Theme (HQ).mp3" },
+        { title: "Symbolism", file: "/Electro-Light - Symbolism  Trap  NCS - Copyright Free Music (1).mp3" },
+        { title: "Energy", file: "/Elektronomia - Energy  Progressive House  NCS - Copyright Free Music.mp3" },
+        { title: "Hope", file: "/Tobu - Hope [Privated NCS Release].mp3" },
+        { title: "Better Days", file: "/LAKEY INSPIRED - Better Days.mp3" }
+        
+    ]);
+    const [currentSongIndex, setCurrentSongIndex] = useState(0);
+    const [showMusicMenu, setShowMusicMenu] = useState(false);
 
     const VALID_LEVELS = {
         en: ['easy', 'normal', 'hard', 'hardcore'],
         es: ['facil', 'normal_2', 'dificil', 'diablo']
+    };
+
+    const API_URL = import.meta.env.VITE_API_URL;
+
+    const difficultySettings = {
+        easy: { gridSize: 6, timeLimit: 180, vowelProbability: 0.4 },
+        normal: { gridSize: 5, timeLimit: 180, vowelProbability: 0.35 },
+        hard: { gridSize: 4, timeLimit: 120, vowelProbability: 0.3 },
+        hardcore: { gridSize: 4, timeLimit: 60, vowelProbability: 0.25 },
+        facil: { gridSize: 6, timeLimit: 180, vowelProbability: 0.4 },
+        normal_2: { gridSize: 5, timeLimit: 180, vowelProbability: 0.35 },
+        dificil: { gridSize: 4, timeLimit: 120, vowelProbability: 0.3 },
+        diablo: { gridSize: 4, timeLimit: 60, vowelProbability: 0.25 }
     };
 
     useEffect(() => {
@@ -33,65 +59,11 @@ function Game() {
         }
     }, []);
 
-    const API_URL = import.meta.env.VITE_API_URL;
-
-    const difficultySettings = {
-        easy: {
-            gridSize: 6,
-            timeLimit: 180,
-            vowelProbability: 0.4
-        },
-        normal: {
-            gridSize: 5,
-            timeLimit: 180,
-            vowelProbability: 0.35
-        },
-        hard: {
-            gridSize: 4,
-            timeLimit: 120,
-            vowelProbability: 0.3
-        },
-        hardcore: {
-            gridSize: 4,
-            timeLimit: 60,
-            vowelProbability: 0.25
-        },
-        facil: {
-            gridSize: 6,
-            timeLimit: 180,
-            vowelProbability: 0.4
-        },
-        normal_2: {
-            gridSize: 5,
-            timeLimit: 180,
-            vowelProbability: 0.35
-        },
-        dificil: {
-            gridSize: 4,
-            timeLimit: 120,
-            vowelProbability: 0.3
-        },
-        diablo: {
-            gridSize: 4,
-            timeLimit: 60,
-            vowelProbability: 0.25
-        }
-    };
-
     useEffect(() => {
         const settings = difficultySettings[difficulty];
         setTimeLeft(settings.timeLimit);
         setGrid(generateRandomGrid(settings.gridSize, settings.vowelProbability));
     }, [difficulty]);
-
-    const toggleMusic = () => {
-        if (isPlaying) {
-            audioRef.current.pause();
-        } else {
-            audioRef.current.play();
-        }
-        setIsPlaying(!isPlaying);
-    };
 
     useEffect(() => {
         return () => clearInterval(timerRef.current);
@@ -111,9 +83,42 @@ function Game() {
                 });
             }, 1000);
         }
-
         return () => clearInterval(timerRef.current);
     }, [showLetters, timeLeft]);
+
+    useEffect(() => {
+        if (audioRef.current) {
+            audioRef.current.src = songs[currentSongIndex].file;
+            audioRef.current.load();
+            if (isPlaying) audioRef.current.play();
+        }
+    }, [currentSongIndex]);
+
+    const toggleMusic = () => {
+        if (isPlaying) {
+            audioRef.current.pause();
+        } else {
+            audioRef.current.play();
+        }
+        setIsPlaying(!isPlaying);
+    };
+
+    const MusicMenu = () => (
+        <div className="music-menu">
+            <h4>{language === "es" ? "Seleccionar música" : "Select Music"}</h4>
+            <div className="songs-list">
+                {songs.map((song, index) => (
+                    <button
+                        key={song.file}
+                        className={`song-item ${index === currentSongIndex ? 'selected' : ''}`}
+                        onClick={() => { setCurrentSongIndex(index); setShowMusicMenu(false); }}
+                    >
+                        {song.title}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
 
     function generateRandomGrid(size, vowelProbability) {
         const vowels = language === "es" ? "AEIOU" : "AEIOU";
@@ -130,7 +135,6 @@ function Game() {
         const total = scoreHistory.reduce((sum, item) => sum + item.puntos, 0);
         setFinalScore(total);
         
-        // Encontrar la mejor palabra
         if (scoreHistory.length > 0) {
             const best = scoreHistory.reduce((max, item) => 
                 item.puntos > max.puntos ? item : max, scoreHistory[0]);
@@ -139,9 +143,8 @@ function Game() {
         
         try {
             const userId = localStorage.getItem('userId');
-            
             if (!userId || isNaN(parseInt(userId))) {
-                console.error("ID de usuario inválido en localStorage:", userId);
+                console.error("ID de usuario inválido:", userId);
                 return;
             }
     
@@ -150,20 +153,15 @@ function Game() {
                 return;
             }
     
-            const requestBody = {
-                user_id: parseInt(userId),
-                language: language,
-                level: difficulty,
-                score: total
-            };
-    
             const response = await fetch(`${API_URL}/api/update_score`, {
                 method: "PATCH",
-                headers: { 
-                    "Content-Type": "application/json",
-                    "Accept": "application/json"
-                },
-                body: JSON.stringify(requestBody)
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    user_id: parseInt(userId),
+                    language: language,
+                    level: difficulty,
+                    score: total
+                })
             });
     
             if (!response.ok) {
@@ -173,12 +171,9 @@ function Game() {
             }
     
             const data = await response.json();
-            
-            if (data.message && data.message.includes('top')) {
+            if (data.message?.includes('top')) {
                 const positionMatch = data.message.match(/top (\d+)/);
-                if (positionMatch) {
-                    setTopPosition(parseInt(positionMatch[1]));
-                }
+                if (positionMatch) setTopPosition(parseInt(positionMatch[1]));
             }
         } catch (err) {
             console.error("Error al guardar puntaje:", err);
@@ -187,14 +182,12 @@ function Game() {
 
     const handleLetterClick = (row, col) => {
         if (!showLetters || timeLeft === 0 || gameOver) return;
-        const letter = grid[row][col];
         const position = `${row}-${col}`;
-        setSelectedLetters(prev => {
-            if (prev.some(item => item.position === position)) {
-                return prev.filter(item => item.position !== position);
-            }
-            return [...prev, { letter, position }];
-        });
+        setSelectedLetters(prev => 
+            prev.some(item => item.position === position) 
+                ? prev.filter(item => item.position !== position) 
+                : [...prev, { letter: grid[row][col], position }]
+        );
     };
 
     const resetGame = () => {
@@ -214,16 +207,15 @@ function Game() {
 
     const handleSubmit = async () => {
         if (gameOver) return;
-        
         const userWord = selectedLetters.map(item => item.letter).join('').toLowerCase();
         
         if (userWord.length < 2) {
-            alert(language === "es" ? "La palabra debe tener al menos 2 letras" : "Word must be at least 2 letters long");
+            alert(language === "es" ? "La palabra debe tener al menos 2 letras" : "Word must be at least 2 letters");
             return;
         }
 
         if (usedWords.has(userWord)) {
-            alert(language === "es" ? "Ya has ingresado esta palabra antes" : "You've already used this word");
+            alert(language === "es" ? "Palabra ya usada" : "Word already used");
             return;
         }
 
@@ -235,81 +227,57 @@ function Game() {
                     word: userWord, 
                     language: language,
                     difficulty: difficulty
-                }),
+                })
             });
 
             const data = await response.json();
-
             if (data.score) {
-                setUsedWords(prev => new Set(prev).add(userWord));
-                setScoreHistory(prev => [
-                    { palabra: userWord.toUpperCase(), puntos: data.score },
-                    ...prev
-                ]);
+                setUsedWords(prev => new Set([...prev, userWord]));
+                setScoreHistory(prev => [{ palabra: userWord.toUpperCase(), puntos: data.score }, ...prev]);
                 setSelectedLetters([]);
             } else {
                 alert(data.error || (language === "es" ? "Palabra no válida" : "Invalid word"));
             }
         } catch (err) {
             console.error("Error de conexión:", err);
-            alert(language === "es" ? "Error al conectar con el servidor" : "Server connection error");
+            alert(language === "es" ? "Error de conexión" : "Connection error");
         }
     };
 
-    const isLetterSelected = (row, col) => {
-        return selectedLetters.some(item => item.position === `${row}-${col}`);
-    };
+    const isLetterSelected = (row, col) => 
+        selectedLetters.some(item => item.position === `${row}-${col}`);
 
-    const formatTime = () => {
-        const minutes = Math.floor(timeLeft / 60);
-        const seconds = timeLeft % 60;
-        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    };
+    const formatTime = () => 
+        `${Math.floor(timeLeft / 60).toString().padStart(2, '0')}:${(timeLeft % 60).toString().padStart(2, '0')}`;
 
-    const getGridStyle = () => {
-        const settings = difficultySettings[difficulty];
-        return {
-            gridTemplateColumns: `repeat(${settings.gridSize}, 1fr)`,
-            gridTemplateRows: `repeat(${settings.gridSize}, 1fr)`,
-            ...(difficulty === "easy" || difficulty === "facil" ? {
-                gap: '8px',
-                padding: '10px'
-            } : {})
-        };
-    };
+    const getGridStyle = () => ({
+        gridTemplateColumns: `repeat(${difficultySettings[difficulty].gridSize}, 1fr)`,
+        gridTemplateRows: `repeat(${difficultySettings[difficulty].gridSize}, 1fr)`,
+        ...(difficulty === "easy" || difficulty === "facil" ? { gap: '8px', padding: '10px' } : {})
+    });
 
     const GameOverModal = () => (
         <div className="game-over-modal">
             <div className="game-over-content">
-                <h2>
-                    {language === "es" ? "¡Se ha acabado el tiempo!" : "Time's up!"}
-                </h2>
-                
+                <h2>{language === "es" ? "¡Tiempo terminado!" : "Time's up!"}</h2>
                 <div className="game-summary-container">
-                    {/* Resumen general */}
                     <div className="summary-card general-summary">
-                        <h3>{language === "es" ? "Resumen del Juego" : "Game Summary"}</h3>
+                        <h3>{language === "es" ? "Resumen" : "Summary"}</h3>
                         <div className="summary-item">
                             <span>{language === "es" ? "Puntaje Total:" : "Total Score:"}</span>
                             <span className="highlight">{finalScore}</span>
                         </div>
                         <div className="summary-item">
-                            <span>{language === "es" ? "Palabras Encontradas:" : "Words Found:"}</span>
+                            <span>{language === "es" ? "Palabras:" : "Words:"}</span>
                             <span className="highlight">{scoreHistory.length}</span>
-                        </div>
-                        <div className="summary-item">
-                            <span>{language === "es" ? "Dificultad:" : "Difficulty:"}</span>
-                            <span className="highlight">{difficulty}</span>
                         </div>
                         {topPosition && (
                             <div className="summary-item top-position">
-                                <span>🏆 {language === "es" ? "Posición en el Top:" : "Top Position:"}</span>
+                                <span>🏆 {language === "es" ? "Top:" : "Rank:"}</span>
                                 <span className="highlight">{topPosition}</span>
                             </div>
                         )}
                     </div>
-                    
-                    {/* Mejor palabra */}
                     {bestWord && (
                         <div className="summary-card best-word">
                             <h3>{language === "es" ? "Mejor Palabra" : "Best Word"}</h3>
@@ -317,25 +285,11 @@ function Game() {
                                 <span className="word">{bestWord.palabra}</span>
                                 <span className="points">+{bestWord.puntos} pts</span>
                             </div>
-                            <div className="word-stats">
-                                <div>
-                                    <span>{language === "es" ? "Longitud:" : "Length:"}</span>
-                                    <span>{bestWord.palabra.length}</span>
-                                </div>
-                                <div>
-                                    <span>{language === "es" ? "Puntos:" : "Points:"}</span>
-                                    <span>{bestWord.puntos}</span>
-                                </div>
-                            </div>
                         </div>
                     )}
                 </div>
-                
-                <button 
-                    className="reset-game-button"
-                    onClick={resetGame}
-                >
-                    {language === "es" ? "Jugar de nuevo" : "Play again"}
+                <button className="reset-game-button" onClick={resetGame}>
+                    {language === "es" ? "Jugar de nuevo" : "Play Again"}
                 </button>
             </div>
         </div>
@@ -343,26 +297,29 @@ function Game() {
 
     return (
         <div className="game-jsx-root">
-            <audio ref={audioRef} loop src="/Enemy (from the series Arcane League of Legends).mp3" />
+            <audio ref={audioRef} loop />
+            
+            <div className="music-controls">
+                <button onClick={toggleMusic} className="music-toggle-button">
+                    {isPlaying ? <FaVolumeUp /> : <FaVolumeMute />}
+                </button>
+                <button onClick={() => setShowMusicMenu(!showMusicMenu)} className="music-menu-button">
+                    <FaMusic />
+                </button>
+                {showMusicMenu && <MusicMenu />}
+            </div>
 
             <div className="game-main-container">
                 <button className="game-home-button" onClick={() => navigate("/")}>
                     🏡 {language === "es" ? "Inicio" : "Home"}
                 </button>
-
+                <ThemeToggle />
                 {gameOver && <GameOverModal />}
 
                 <div className="game-content-center">
                     <div className="title-and-timer">
                         <h1 className="game-title">WordShake</h1>
-                        {showLetters && (
-                            <div className="timer-container">
-                                <div className="timer">{formatTime()}</div>
-                            </div>
-                        )}
-                        <button onClick={toggleMusic} className="music-toggle-button">
-                            {isPlaying ? <FaVolumeUp /> : <FaVolumeMute />}
-                        </button>
+                        {showLetters && <div className="timer">{formatTime()}</div>}
                     </div>
 
                     <div className="game-main-content">
@@ -371,16 +328,16 @@ function Game() {
                                 row.map((letter, colIndex) => (
                                     <button
                                         key={`${rowIndex}-${colIndex}`}
-                                        className={`letter-button ${isLetterSelected(rowIndex, colIndex) ? 'selected' : ''} ${!showLetters || gameOver ? 'hidden' : ''}`}
+                                        className={`letter-button 
+                                            ${isLetterSelected(rowIndex, colIndex) ? 'selected' : ''} 
+                                            ${!showLetters || gameOver ? 'hidden' : ''}`}
                                         onClick={() => handleLetterClick(rowIndex, colIndex)}
                                         disabled={gameOver}
-                                        style={
-                                            (difficulty === "easy" || difficulty === "facil") ? {
-                                                width: '40px',  
-                                                height: '45px', 
-                                                fontSize: '1.2rem' 
-                                            } : {}
-                                        }
+                                        style={difficulty === "easy" || difficulty === "facil" ? { 
+                                            width: '40px', 
+                                            height: '45px', 
+                                            fontSize: '1.2rem' 
+                                        } : {}}
                                     >
                                         {letter}
                                     </button>
@@ -389,11 +346,9 @@ function Game() {
                         </div>
 
                         <div className="score-table-container">
-                            <h3 className="score-table-title">
-                                {language === "es" ? "Puntuaciones" : "Scores"}
-                            </h3>
+                            <h3>{language === "es" ? "Puntuaciones" : "Scores"}</h3>
                             <div className="score-table-scroll">
-                                <table className="score-table">
+                                <table>
                                     <thead>
                                         <tr>
                                             <th>{language === "es" ? "Palabra" : "Word"}</th>
@@ -414,39 +369,31 @@ function Game() {
                     </div>
 
                     <div className="word-display-container">
-                        <h3 className="word-display-title">
-                            {language === "es" ? "Tu palabra:" : "Your word:"}
-                        </h3>
+                        <h3>{language === "es" ? "Tu palabra:" : "Your word:"}</h3>
                         <div className="word-display">
                             {selectedLetters.length > 0 ? (
-                                selectedLetters.map((item, index) => (
-                                    <span key={index}>{item.letter}</span>
-                                ))
+                                selectedLetters.map((item, index) => <span key={index}>{item.letter}</span>)
                             ) : (
-                                <span className={`word-display-placeholder ${!showLetters ? 'waiting' : ''}`}>
-                                    {showLetters ? 
-                                        (language === "es" ? "Selecciona letras" : "Select letters") : 
-                                        (language === "es" ? "Presiona Comenzar" : "Press Start")}
+                                <span className={!showLetters ? 'waiting' : ''}>
+                                    {showLetters 
+                                        ? (language === "es" ? "Selecciona letras" : "Select letters") 
+                                        : (language === "es" ? "Presiona Comenzar" : "Press Start")}
                                 </span>
                             )}
                         </div>
                     </div>
 
                     <div className="buttons-container">
-                        <button
-                            className={`reset-game-button ${!showLetters ? 'start' : ''}`}
-                            onClick={resetGame}
-                        >
-                            {showLetters ? 
-                                (language === "es" ? "Reiniciar Juego" : "Reset Game") : 
-                                (language === "es" ? "Comenzar Juego" : "Start Game")}
+                        <button className={`reset-game-button ${!showLetters ? 'start' : ''}`} onClick={resetGame}>
+                            {showLetters 
+                                ? (language === "es" ? "Reiniciar" : "Reset") 
+                                : (language === "es" ? "Comenzar" : "Start")}
                         </button>
-
                         {showLetters && !gameOver && (
-                            <button
-                                className="submit-button"
+                            <button 
+                                className="submit-button" 
                                 onClick={handleSubmit}
-                                disabled={selectedLetters.length === 0 || timeLeft === 0}
+                                disabled={selectedLetters.length === 0}
                             >
                                 {language === "es" ? "Ingresar" : "Submit"}
                             </button>
