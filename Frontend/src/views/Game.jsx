@@ -55,7 +55,7 @@ function Game() {
 
     useEffect(() => {
         if (audioRef.current) {
-            audioRef.current.volume = 0.1;
+            audioRef.current.volume = 0.9;
         }
     }, []);
 
