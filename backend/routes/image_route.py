@@ -19,16 +19,24 @@ def upload_image():
         image_data = image_file.read()
         mime_type = image_file.content_type
 
-        new_image = UserImage(
-            user_id=user_id,
-            image_data=image_data,
-            mime_type=mime_type
-        )
+        # Verificar si ya existe una imagen para el usuario en el que estamos actualmente ejemplo Capi
+        existing_image = db_session.query(UserImage).filter_by(user_id=user_id).first()
 
-        db_session.add(new_image)
+        if existing_image:
+            # Si ya existe, actualiza sus campos osea se va a actualizar la imagen qeu teniamos antes
+            existing_image.image_data = image_data
+            existing_image.mime_type = mime_type
+        else:
+            # Si no existe, crea una nueva :D
+            new_image = UserImage(
+                user_id=user_id,
+                image_data=image_data,
+                mime_type=mime_type
+            )
+            db_session.add(new_image)
+
         db_session.commit()
-
-        return jsonify({'success': True, 'message': 'Imagen subida correctamente'})
+        return jsonify({'success': True, 'message': 'Imagen guardada correctamente'})
 
     except SQLAlchemyError as e:
         return jsonify({'error': str(e)}), 500
