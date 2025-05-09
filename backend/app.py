@@ -8,6 +8,7 @@ from routes.scores import scores_bp
 from routes.update_score import update_score_bp
 from routes.challenges import challenges_bp
 from routes.delete_user import delete_user_bp
+from routes.image_route import image_bp  # Ruta para manejar imágenes de usuario
 from gql.schema import schema  # Tu esquema GraphQL
 import graphene
 
@@ -23,7 +24,7 @@ app.register_blueprint(scores_bp, url_prefix='/api')
 app.register_blueprint(update_score_bp, url_prefix='/api')
 app.register_blueprint(challenges_bp, url_prefix='/api')
 app.register_blueprint(delete_user_bp, url_prefix='/api')
-
+app.register_blueprint(image_bp, url_prefix='/api')  
 # Endpoint manual de GraphQL (sin flask-graphql)
 
 @app.route('/graphql', methods=['POST'])

@@ -16,6 +16,8 @@ class User(Base):
 
     def __repr__(self):
         return f"<User(name={self.name}, email={self.email})>"
+    
+    image = relationship("UserImage", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
     def to_dict(self):
         return {
