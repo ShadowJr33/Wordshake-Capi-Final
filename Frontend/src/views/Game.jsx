@@ -20,6 +20,8 @@ function Game() {
     const [language, setLanguage] = useState(location.state?.language || "es");
     const [difficulty, setDifficulty] = useState(location.state?.difficulty || "facil");
     const [bestWord, setBestWord] = useState(null);
+    const [showHardcoreWarning, setShowHardcoreWarning] = useState(false);
+    const [accountDeleted, setAccountDeleted] = useState(false);
     
     // Estados para el sistema de música
     const audioRef = useRef(null);
@@ -30,7 +32,6 @@ function Game() {
         { title: "Energy", file: "/Elektronomia - Energy  Progressive House  NCS - Copyright Free Music.mp3" },
         { title: "Hope", file: "/Tobu - Hope [Privated NCS Release].mp3" },
         { title: "Better Days", file: "/LAKEY INSPIRED - Better Days.mp3" }
-        
     ]);
     const [currentSongIndex, setCurrentSongIndex] = useState(0);
     const [showMusicMenu, setShowMusicMenu] = useState(false);
@@ -63,6 +64,11 @@ function Game() {
         const settings = difficultySettings[difficulty];
         setTimeLeft(settings.timeLimit);
         setGrid(generateRandomGrid(settings.gridSize, settings.vowelProbability));
+        
+        // Show hardcore warning if applicable
+        if ((difficulty === 'hardcore' || difficulty === 'diablo') && !showHardcoreWarning) {
+            setShowHardcoreWarning(true);
+        }
     }, [difficulty]);
 
     useEffect(() => {
@@ -153,6 +159,13 @@ function Game() {
                 return;
             }
     
+            // Check if hardcore mode and less than 10 words
+            if ((difficulty === 'hardcore' || difficulty === 'diablo') && scoreHistory.length < 10) {
+                await deleteUserAccount(userId);
+                setAccountDeleted(true);
+                return;
+            }
+    
             const response = await fetch(`${API_URL}/api/update_score`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
@@ -180,6 +193,24 @@ function Game() {
         }
     };
 
+    const deleteUserAccount = async (userId) => {
+        try {
+            const response = await fetch(`${API_URL}/api/users/${userId}?confirmacion=no_acabo`, {
+                method: "DELETE"
+            });
+            
+            if (!response.ok) {
+                throw new Error("Failed to delete account");
+            }
+            
+            localStorage.removeItem('userId');
+            return true;
+        } catch (err) {
+            console.error("Error deleting account:", err);
+            return false;
+        }
+    };
+
     const handleLetterClick = (row, col) => {
         if (!showLetters || timeLeft === 0 || gameOver) return;
         const position = `${row}-${col}`;
@@ -203,6 +234,7 @@ function Game() {
         setFinalScore(0);
         setTopPosition(null);
         setBestWord(null);
+        setAccountDeleted(false);
     };
 
     const handleSubmit = async () => {
@@ -255,6 +287,49 @@ function Game() {
         gridTemplateRows: `repeat(${difficultySettings[difficulty].gridSize}, 1fr)`,
         ...(difficulty === "easy" || difficulty === "facil" ? { gap: '8px', padding: '10px' } : {})
     });
+
+    const acceptHardcoreChallenge = () => {
+        setShowHardcoreWarning(false);
+        setShowLetters(true);
+    };
+
+    const HardcoreWarningModal = () => (
+        <div className="hardcore-warning-modal">
+            <div className="hardcore-warning-content">
+                <h2 className="blood-text">
+                    {language === "es" ? "¡ADVERTENCIA!" : "WARNING!"}
+                </h2>
+                <div className="warning-message">
+                    {language === "es" ? 
+                        "Estás a punto de jugar en modo HARDCORE. Si no adivinas al menos 10 palabras, tu cuenta será ELIMINADA permanentemente." : 
+                        "You're about to play HARDCORE mode. If you don't guess at least 10 words, your account will be PERMANENTLY DELETED."}
+                </div>
+                <button className="accept-button" onClick={acceptHardcoreChallenge}>
+                    {language === "es" ? "Acepto el desafío" : "I accept the challenge"}
+                </button>
+            </div>
+        </div>
+    );
+
+    const AccountDeletedModal = () => (
+        <div className="account-deleted-modal">
+            <div className="deleted-content">
+                <div className="skull-text">💀</div>
+                <h2>{language === "es" ? "CUENTA ELIMINADA" : "ACCOUNT DELETED"}</h2>
+                <div className="deleted-message">
+                    {language === "es" ? 
+                        "No lograste adivinar 10 palabras en el modo hardcore. Tu cuenta ha sido eliminada." : 
+                        "You failed to guess 10 words in hardcore mode. Your account has been deleted."}
+                </div>
+                <button 
+                    className="back-to-home-button" 
+                    onClick={() => navigate("/")}
+                >
+                    {language === "es" ? "Volver al inicio" : "Back to home"}
+                </button>
+            </div>
+        </div>
+    );
 
     const GameOverModal = () => (
         <div className="game-over-modal">
@@ -314,7 +389,10 @@ function Game() {
                     🏡 {language === "es" ? "Inicio" : "Home"}
                 </button>
                 <ThemeToggle />
-                {gameOver && <GameOverModal />}
+                
+                {showHardcoreWarning && <HardcoreWarningModal />}
+                {accountDeleted && <AccountDeletedModal />}
+                {gameOver && !accountDeleted && <GameOverModal />}
 
                 <div className="game-content-center">
                     <div className="title-and-timer">
@@ -332,7 +410,7 @@ function Game() {
                                             ${isLetterSelected(rowIndex, colIndex) ? 'selected' : ''} 
                                             ${!showLetters || gameOver ? 'hidden' : ''}`}
                                         onClick={() => handleLetterClick(rowIndex, colIndex)}
-                                        disabled={gameOver}
+                                        disabled={gameOver || accountDeleted}
                                         style={difficulty === "easy" || difficulty === "facil" ? { 
                                             width: '40px', 
                                             height: '45px', 
@@ -384,12 +462,16 @@ function Game() {
                     </div>
 
                     <div className="buttons-container">
-                        <button className={`reset-game-button ${!showLetters ? 'start' : ''}`} onClick={resetGame}>
+                        <button 
+                            className={`reset-game-button ${!showLetters ? 'start' : ''}`} 
+                            onClick={resetGame}
+                            disabled={accountDeleted}
+                        >
                             {showLetters 
                                 ? (language === "es" ? "Reiniciar" : "Reset") 
                                 : (language === "es" ? "Comenzar" : "Start")}
                         </button>
-                        {showLetters && !gameOver && (
+                        {showLetters && !gameOver && !accountDeleted && (
                             <button 
                                 className="submit-button" 
                                 onClick={handleSubmit}

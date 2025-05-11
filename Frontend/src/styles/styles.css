@@ -1324,3 +1324,117 @@ body.tema-oscuro .word-stats span:last-child {
 .song-item.selected:hover {
   background: #45a049;
 }
+
+/* Hardcore Warning Modal */
+.hardcore-warning-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.hardcore-warning-content {
+    background-color: #300;
+    border: 3px solid #800;
+    border-radius: 10px;
+    padding: 2rem;
+    max-width: 500px;
+    text-align: center;
+    box-shadow: 0 0 20px #f00;
+    animation: pulse 2s infinite;
+}
+
+.blood-text {
+    color: #f00;
+    text-shadow: 0 0 5px #f00;
+    font-weight: bold;
+}
+
+.warning-message {
+    margin: 1.5rem 0;
+    font-size: 1.2rem;
+    line-height: 1.5;
+}
+
+.accept-button {
+    background-color: #800;
+    color: white;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    font-size: 1.2rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: bold;
+}
+
+.accept-button:hover {
+    background-color: #f00;
+    transform: scale(1.05);
+}
+
+/* Account Deleted Modal */
+.account-deleted-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.deleted-content {
+    background-color: #222;
+    border: 3px solid #444;
+    border-radius: 10px;
+    padding: 2rem;
+    max-width: 500px;
+    text-align: center;
+    box-shadow: 0 0 20px #555;
+}
+
+.skull-text {
+    color: #fff;
+    text-shadow: 0 0 10px #fff;
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.deleted-message {
+    margin: 1.5rem 0;
+    font-size: 1.2rem;
+    line-height: 1.5;
+    color: #ccc;
+}
+
+.back-to-home-button {
+    background-color: #444;
+    color: white;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    font-size: 1.2rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.back-to-home-button:hover {
+    background-color: #666;
+}
+
+/* Animation */
+@keyframes pulse {
+    0% { box-shadow: 0 0 20px #f00; }
+    50% { box-shadow: 0 0 40px #f00; }
+    100% { box-shadow: 0 0 20px #f00; }
+}
