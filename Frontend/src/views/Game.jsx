@@ -3,7 +3,9 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { FaVolumeUp, FaVolumeMute, FaMusic } from "react-icons/fa";
 import ThemeToggle from "../components/ThemeToggle";
 import { useTheme } from "../components/ThemeContext";
-import defaultAvatar from "../assets/default-avatar.png"; // Usa una imagen por defecto en assets
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import defaultAvatar from "../assets/default-avatar.png";
 
 function Game() {
     const navigate = useNavigate();
@@ -23,8 +25,9 @@ function Game() {
     const [bestWord, setBestWord] = useState(null);
     const [showHardcoreWarning, setShowHardcoreWarning] = useState(false);
     const [accountDeleted, setAccountDeleted] = useState(false);
+    const [timePenalty, setTimePenalty] = useState(false);
     
-    // Estados para el sistema de música
+    // States for music system
     const audioRef = useRef(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [songs] = useState([
@@ -37,53 +40,10 @@ function Game() {
     const [currentSongIndex, setCurrentSongIndex] = useState(0);
     const [showMusicMenu, setShowMusicMenu] = useState(false);
 
+    // States for avatar system
     const [avatarUrl, setAvatarUrl] = useState(null);
-    const [userName, setUserName] = useState(""); // Puedes obtenerlo de localStorage o API
+    const [userName, setUserName] = useState("");
     const [uploading, setUploading] = useState(false);
-
-    useEffect(() => {
-        const userId = localStorage.getItem("userId");
-        const name = localStorage.getItem("userName") || "Usuario";
-        setUserName(name);
-
-        if (userId) {
-            fetch(`${API_URL}/api/user_image/${userId}`)
-                .then(res => {
-                    if (!res.ok) throw new Error();
-                    return res.blob();
-                })
-                .then(blob => setAvatarUrl(URL.createObjectURL(blob)))
-                .catch(() => setAvatarUrl(null));
-        }
-    }, [accountDeleted]); // recarga si la cuenta se elimina
-
-    const handleAvatarChange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        setUploading(true);
-        const userId = localStorage.getItem("userId");
-        const formData = new FormData();
-        formData.append("user_id", userId);
-        formData.append("image", file);
-
-        try {
-            const res = await fetch(`${API_URL}/api/upload_image`, {
-                method: "POST",
-                body: formData
-            });
-            if (res.ok) {
-                // Recarga la imagen
-                fetch(`${API_URL}/api/user_image/${userId}`)
-                    .then(res => res.blob())
-                    .then(blob => setAvatarUrl(URL.createObjectURL(blob)));
-            } else {
-                alert("Error al subir la imagen");
-            }
-        } catch {
-            alert("Error de conexión");
-        }
-        setUploading(false);
-    };
 
     const VALID_LEVELS = {
         en: ['easy', 'normal', 'hard', 'hardcore'],
@@ -107,14 +67,28 @@ function Game() {
         if (audioRef.current) {
             audioRef.current.volume = 0.9;
         }
-    }, []);
+
+        // Load user data
+        const userId = localStorage.getItem("userId");
+        const name = localStorage.getItem("userName") || (language === "es" ? "Usuario" : "User");
+        setUserName(name);
+
+        if (userId) {
+            fetch(`${API_URL}/api/user_image/${userId}`)
+                .then(res => {
+                    if (!res.ok) throw new Error();
+                    return res.blob();
+                })
+                .then(blob => setAvatarUrl(URL.createObjectURL(blob)))
+                .catch(() => setAvatarUrl(null));
+        }
+    }, [accountDeleted, language]);
 
     useEffect(() => {
         const settings = difficultySettings[difficulty];
         setTimeLeft(settings.timeLimit);
         setGrid(generateRandomGrid(settings.gridSize, settings.vowelProbability));
         
-        // Show hardcore warning if applicable
         if ((difficulty === 'hardcore' || difficulty === 'diablo') && !showHardcoreWarning) {
             setShowHardcoreWarning(true);
         }
@@ -175,6 +149,33 @@ function Game() {
         </div>
     );
 
+    const handleAvatarChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setUploading(true);
+        const userId = localStorage.getItem("userId");
+        const formData = new FormData();
+        formData.append("user_id", userId);
+        formData.append("image", file);
+
+        try {
+            const res = await fetch(`${API_URL}/api/upload_image`, {
+                method: "POST",
+                body: formData
+            });
+            if (res.ok) {
+                fetch(`${API_URL}/api/user_image/${userId}`)
+                    .then(res => res.blob())
+                    .then(blob => setAvatarUrl(URL.createObjectURL(blob)));
+            } else {
+                toast.error(language === "es" ? "Error al subir la imagen" : "Error uploading image");
+            }
+        } catch {
+            toast.error(language === "es" ? "Error de conexión" : "Connection error");
+        }
+        setUploading(false);
+    };
+
     function generateRandomGrid(size, vowelProbability) {
         const vowels = language === "es" ? "AEIOU" : "AEIOU";
         const consonants = language === "es" ? "BCDFGHJKLMNÑPQRSTVWXYZ" : "BCDFGHJKLMNPQRSTVWXYZ";
@@ -199,16 +200,15 @@ function Game() {
         try {
             const userId = localStorage.getItem('userId');
             if (!userId || isNaN(parseInt(userId))) {
-                console.error("ID de usuario inválido:", userId);
+                console.error("Invalid user ID:", userId);
                 return;
             }
     
             if (!VALID_LEVELS[language].includes(difficulty)) {
-                console.error(`Nivel ${difficulty} no válido para idioma ${language}`);
+                console.error(`Invalid level ${difficulty} for language ${language}`);
                 return;
             }
     
-            // Check if hardcore mode and less than 10 words
             if ((difficulty === 'hardcore' || difficulty === 'diablo') && scoreHistory.length < 10) {
                 await deleteUserAccount(userId);
                 setAccountDeleted(true);
@@ -228,7 +228,7 @@ function Game() {
     
             if (!response.ok) {
                 const errorData = await response.json();
-                console.error("Error en la respuesta:", errorData);
+                console.error("Response error:", errorData);
                 return;
             }
     
@@ -238,7 +238,7 @@ function Game() {
                 if (positionMatch) setTopPosition(parseInt(positionMatch[1]));
             }
         } catch (err) {
-            console.error("Error al guardar puntaje:", err);
+            console.error("Error saving score:", err);
         }
     };
 
@@ -284,6 +284,24 @@ function Game() {
         setTopPosition(null);
         setBestWord(null);
         setAccountDeleted(false);
+        setTimePenalty(false);
+    };
+
+    const applyTimePenalty = () => {
+        if (difficulty === 'hard' || difficulty === 'hardcore' || difficulty === 'dificil' || difficulty === 'diablo') {
+            setTimePenalty(true);
+            setTimeLeft(prev => {
+                const newTime = prev - 5;
+                if (newTime <= 0) {
+                    setGameOver(true);
+                    calculateFinalScore();
+                    return 0;
+                }
+                return newTime;
+            });
+            
+            setTimeout(() => setTimePenalty(false), 1000);
+        }
     };
 
     const handleSubmit = async () => {
@@ -291,12 +309,12 @@ function Game() {
         const userWord = selectedLetters.map(item => item.letter).join('').toLowerCase();
         
         if (userWord.length < 2) {
-            alert(language === "es" ? "La palabra debe tener al menos 2 letras" : "Word must be at least 2 letters");
+            toast.error(language === "es" ? "La palabra debe tener al menos 2 letras" : "Word must be at least 2 letters");
             return;
         }
 
         if (usedWords.has(userWord)) {
-            alert(language === "es" ? "Palabra ya usada" : "Word already used");
+            toast.error(language === "es" ? "Palabra ya usada" : "Word already used");
             return;
         }
 
@@ -317,11 +335,12 @@ function Game() {
                 setScoreHistory(prev => [{ palabra: userWord.toUpperCase(), puntos: data.score }, ...prev]);
                 setSelectedLetters([]);
             } else {
-                alert(data.error || (language === "es" ? "Palabra no válida" : "Invalid word"));
+                toast.error(data.error || (language === "es" ? "Palabra no válida" : "Invalid word"));
+                applyTimePenalty();
             }
         } catch (err) {
-            console.error("Error de conexión:", err);
-            alert(language === "es" ? "Error de conexión" : "Connection error");
+            console.error("Connection error:", err);
+            toast.error(language === "es" ? "Error de conexión" : "Connection error");
         }
     };
 
@@ -422,6 +441,7 @@ function Game() {
     return (
         <div className="game-jsx-root">
             <audio ref={audioRef} loop />
+            <ToastContainer position="top-center" autoClose={3000} />
             
             <div className="music-controls">
                 <button onClick={toggleMusic} className="music-toggle-button">
@@ -434,17 +454,16 @@ function Game() {
             </div>
 
             <div className="game-main-container">
-                <button className="game-home-button" onClick={() => navigate("/")}>
-                    🏡 {language === "es" ? "Inicio" : "Home"}
-                </button>
+                {(difficulty !== 'hardcore' && difficulty !== 'diablo') && (
+                    <button className="game-home-button" onClick={() => navigate("/")}>
+                        🏡 {language === "es" ? "Inicio" : "Home"}
+                    </button>
+                )}
                 <ThemeToggle />
-
-                {/* AVATAR SECTION */}
+                
+                {/* Avatar Section */}
                 <div className="user-avatar-section">
-                    <div
-                        className="avatar-img-wrapper"
-                        style={{ position: "relative", display: "inline-block" }}
-                    >
+                    <div className="avatar-img-wrapper" style={{ position: "relative", display: "inline-block" }}>
                         <label
                             className="avatar-upload-label"
                             style={{ cursor: uploading ? "not-allowed" : "pointer" }}
@@ -469,7 +488,6 @@ function Game() {
                     </div>
                     <div className="user-name">{userName}</div>
                 </div>
-                {/* END AVATAR SECTION */}
 
                 {showHardcoreWarning && <HardcoreWarningModal />}
                 {accountDeleted && <AccountDeletedModal />}
@@ -478,7 +496,12 @@ function Game() {
                 <div className="game-content-center">
                     <div className="title-and-timer">
                         <h1 className="game-title">WordShake</h1>
-                        {showLetters && <div className="timer">{formatTime()}</div>}
+                        {showLetters && (
+                            <div className={`timer ${timePenalty ? 'time-penalty' : ''}`}>
+                                {formatTime()}
+                                {timePenalty && <span className="penalty-text">-5s</span>}
+                            </div>
+                        )}
                     </div>
 
                     <div className="game-main-content">

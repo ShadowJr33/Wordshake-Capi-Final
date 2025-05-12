@@ -1496,3 +1496,27 @@ body.tema-oscuro .word-stats span:last-child {
 .avatar-upload-label:hover .avatar-hover-text {
   display: block;
 }
+
+
+
+.timer.time-penalty {
+    animation: penaltyFlash 0.5s ease-in-out 3;
+    color: red;
+}
+
+@keyframes penaltyFlash {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
+
+.penalty-text {
+    position: absolute;
+    color: red;
+    font-size: 0.8em;
+    animation: fadeOutUp 1s ease-out forwards;
+}
+
+@keyframes fadeOutUp {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(-20px); }
+}
