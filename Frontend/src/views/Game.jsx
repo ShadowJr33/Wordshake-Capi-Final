@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { FaVolumeUp, FaVolumeMute, FaMusic } from "react-icons/fa";
 import ThemeToggle from "../components/ThemeToggle";
 import { useTheme } from "../components/ThemeContext";
+import defaultAvatar from "../assets/default-avatar.png"; // Usa una imagen por defecto en assets
 
 function Game() {
     const navigate = useNavigate();
@@ -35,6 +36,54 @@ function Game() {
     ]);
     const [currentSongIndex, setCurrentSongIndex] = useState(0);
     const [showMusicMenu, setShowMusicMenu] = useState(false);
+
+    const [avatarUrl, setAvatarUrl] = useState(null);
+    const [userName, setUserName] = useState(""); // Puedes obtenerlo de localStorage o API
+    const [uploading, setUploading] = useState(false);
+
+    useEffect(() => {
+        const userId = localStorage.getItem("userId");
+        const name = localStorage.getItem("userName") || "Usuario";
+        setUserName(name);
+
+        if (userId) {
+            fetch(`${API_URL}/api/user_image/${userId}`)
+                .then(res => {
+                    if (!res.ok) throw new Error();
+                    return res.blob();
+                })
+                .then(blob => setAvatarUrl(URL.createObjectURL(blob)))
+                .catch(() => setAvatarUrl(null));
+        }
+    }, [accountDeleted]); // recarga si la cuenta se elimina
+
+    const handleAvatarChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setUploading(true);
+        const userId = localStorage.getItem("userId");
+        const formData = new FormData();
+        formData.append("user_id", userId);
+        formData.append("image", file);
+
+        try {
+            const res = await fetch(`${API_URL}/api/upload_image`, {
+                method: "POST",
+                body: formData
+            });
+            if (res.ok) {
+                // Recarga la imagen
+                fetch(`${API_URL}/api/user_image/${userId}`)
+                    .then(res => res.blob())
+                    .then(blob => setAvatarUrl(URL.createObjectURL(blob)));
+            } else {
+                alert("Error al subir la imagen");
+            }
+        } catch {
+            alert("Error de conexión");
+        }
+        setUploading(false);
+    };
 
     const VALID_LEVELS = {
         en: ['easy', 'normal', 'hard', 'hardcore'],
@@ -389,7 +438,39 @@ function Game() {
                     🏡 {language === "es" ? "Inicio" : "Home"}
                 </button>
                 <ThemeToggle />
-                
+
+                {/* AVATAR SECTION */}
+                <div className="user-avatar-section">
+                    <div
+                        className="avatar-img-wrapper"
+                        style={{ position: "relative", display: "inline-block" }}
+                    >
+                        <label
+                            className="avatar-upload-label"
+                            style={{ cursor: uploading ? "not-allowed" : "pointer" }}
+                        >
+                            <img
+                                src={avatarUrl || defaultAvatar}
+                                alt="Avatar"
+                                className="user-avatar-img"
+                                style={{ opacity: uploading ? 0.5 : 1, transition: "filter 0.2s" }}
+                            />
+                            <input
+                                type="file"
+                                accept="image/*"
+                                style={{ display: "none" }}
+                                onChange={handleAvatarChange}
+                                disabled={uploading}
+                            />
+                            <span className="avatar-hover-text">
+                                {language === "es" ? "Cambiar imagen" : "Change image"}
+                            </span>
+                        </label>
+                    </div>
+                    <div className="user-name">{userName}</div>
+                </div>
+                {/* END AVATAR SECTION */}
+
                 {showHardcoreWarning && <HardcoreWarningModal />}
                 {accountDeleted && <AccountDeletedModal />}
                 {gameOver && !accountDeleted && <GameOverModal />}

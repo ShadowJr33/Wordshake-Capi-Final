@@ -1438,3 +1438,61 @@ body.tema-oscuro .word-stats span:last-child {
     50% { box-shadow: 0 0 40px #f00; }
     100% { box-shadow: 0 0 20px #f00; }
 }
+
+.user-avatar-section { display: flex; flex-direction: column; align-items: center; margin: 20px 0; }
+.avatar-img-wrapper { position: relative; display: inline-block; width: 90px; height: 90px; border-radius: 50%; overflow: hidden; }
+.user-avatar-img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 2px solid #aaa; }
+.avatar-upload-label { cursor: pointer; margin-top: 8px; }
+.avatar-upload-btn { background: #eee; padding: 4px 12px; border-radius: 8px; font-size: 0.95rem; }
+.user-name { margin-top: 8px; font-weight: bold; font-size: 1.1rem; }
+
+/* Puedes poner esto en tu archivo CSS global o de Game.jsx */
+.user-name {
+  margin-top: 8px;
+  font-weight: bold;
+  font-size: 1.1rem;
+  color: #ffffff; /* O el color que combine con tu fondo */
+  text-align: center;
+  text-shadow: 0 1px 4px #0008;
+}
+
+/* Puedes poner esto en tu archivo CSS correspondiente */
+.avatar-img-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.avatar-upload-label .user-avatar-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  transition: filter 0.2s;
+}
+
+.avatar-upload-label:hover .user-avatar-img {
+  filter: brightness(0.4);
+}
+
+.avatar-hover-text {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  font-weight: bold;
+  font-size: 1.1rem;
+  pointer-events: none;
+  text-shadow: 0 2px 8px #000;
+  white-space: nowrap;
+}
+
+.avatar-upload-label:hover .avatar-hover-text {
+  display: block;
+}

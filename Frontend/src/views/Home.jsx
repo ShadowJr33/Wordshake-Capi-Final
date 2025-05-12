@@ -118,7 +118,9 @@ function Home() {
                 // Asegúrate de que data.user_id existe y es un número
                 if (data.user_id) {
                     localStorage.setItem('userId', data.user_id.toString()); // Guardar como string
+                    localStorage.setItem('userName', data.name || usuario);
                     console.log("User ID guardado:", data.user_id); // Para depuración
+                    console.log("User Name guardado:", data.name || usuario);
                 } else {
                     console.error("El servidor no devolvió un user_id");
                 }
