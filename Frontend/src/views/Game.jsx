@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { FaVolumeUp, FaVolumeMute, FaMusic } from "react-icons/fa";
+import { FaVolumeUp, FaVolumeMute, FaMusic, FaTrophy } from "react-icons/fa";
 import ThemeToggle from "../components/ThemeToggle";
 import { useTheme } from "../components/ThemeContext";
 import { ToastContainer, toast } from "react-toastify";
@@ -26,6 +26,9 @@ function Game() {
     const [showHardcoreWarning, setShowHardcoreWarning] = useState(false);
     const [accountDeleted, setAccountDeleted] = useState(false);
     const [timePenalty, setTimePenalty] = useState(false);
+    const [showAchievements, setShowAchievements] = useState(false);
+    const [achievements, setAchievements] = useState([]);
+    const [usernameInput, setUsernameInput] = useState("");
     
     // States for music system
     const audioRef = useRef(null);
@@ -72,6 +75,7 @@ function Game() {
         const userId = localStorage.getItem("userId");
         const name = localStorage.getItem("userName") || (language === "es" ? "Usuario" : "User");
         setUserName(name);
+        setUsernameInput(name);
 
         if (userId) {
             fetch(`${API_URL}/api/user_image/${userId}`)
@@ -344,6 +348,123 @@ function Game() {
         }
     };
 
+    const fetchAchievements = async () => {
+        try {
+            const userId = localStorage.getItem("userId");
+            
+            if (!userId) {
+                toast.error(language === "es" ? "Usuario no identificado" : "User not identified");
+                return;
+            }
+
+            const response = await fetch(`${API_URL}/api/challenge_status`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_id: userId })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log("Datos de logros recibidos:", data); // Para depuración
+                
+                const status = data.challenge_status;
+                
+                // Mapeo CORREGIDO (usando las mismas claves que la API)
+                setAchievements([
+                    {
+                        id: "easy",
+                        title: language === "es" ? "Principiante" : "Beginner",
+                        description: language === "es" ? "Alcanza 40 puntos en modo Fácil" : "Score 40 points in Easy mode",
+                        completed: status.easy.completed, // ← Clave "easy" (no "facil")
+                        pointsNeeded: status.easy.points_needed
+                    },
+                    {
+                        id: "normal",
+                        title: language === "es" ? "Intermedio" : "Intermediate",
+                        description: language === "es" ? "Alcanza 30 puntos en modo Normal" : "Score 30 points in Normal mode",
+                        completed: status.normal.completed, // ← Clave "normal" (no "normal_2")
+                        pointsNeeded: status.normal.points_needed
+                    },
+                    {
+                        id: "hard",
+                        title: language === "es" ? "Avanzado" : "Advanced",
+                        description: language === "es" ? "Alcanza 20 puntos en modo Difícil" : "Score 20 points in Hard mode",
+                        completed: status.hard.completed, // ← Clave "hard" (no "dificil")
+                        pointsNeeded: status.hard.points_needed
+                    },
+                    {
+                        id: "hardcore",
+                        title: language === "es" ? "Experto" : "Expert",
+                        description: language === "es" ? "Alcanza 10 puntos en modo Hardcore" : "Score 10 points in Hardcore mode",
+                        completed: status.hardcore.completed, // ← Clave "hardcore" (no "diablo")
+                        pointsNeeded: status.hardcore.points_needed
+                    },
+                    {
+                        id: "all",
+                        title: language === "es" ? "Maestro de Palabras" : "Word Master",
+                        description: language === "es" ? "Completa todos los desafíos" : "Complete all challenges",
+                        completed: status.easy.completed && 
+                                status.normal.completed && 
+                                status.hard.completed && 
+                                status.hardcore.completed,
+                        pointsNeeded: 0
+                    }
+                ]);
+            } else {
+                toast.error(language === "es" ? "Error al cargar logros" : "Error loading achievements");
+            }
+        } catch (err) {
+            console.error("Error fetching achievements:", err);
+            toast.error(language === "es" ? "Error de conexión" : "Connection error");
+        }
+    };
+
+    const handleAchievementsClick = () => {
+        if (!localStorage.getItem("userId")) {
+            toast.info(language === "es" ? "Inicia sesión para ver tus logros" : "Log in to view your achievements");
+            return;
+        }
+        fetchAchievements();
+        setShowAchievements(true);
+    };
+
+    const AchievementsModal = () => (
+        <div className="achievements-modal">
+            <div className="achievements-content">
+                <button 
+                    className="close-achievements" 
+                    onClick={() => setShowAchievements(false)}
+                >
+                    ×
+                </button>
+                <h2><FaTrophy /> {language === "es" ? "Tus Logros" : "Your Achievements"}</h2>
+                <div className="achievements-list">
+                    {achievements.map((achievement) => (
+                        <div 
+                            key={achievement.id} 
+                            className={`achievement-item ${achievement.completed ? 'completed' : 'locked'}`}
+                        >
+                            <div className="achievement-icon">
+                                {achievement.completed ? '✅' : '🔒'}
+                            </div>
+                            <div className="achievement-details">
+                                <h3>{achievement.title}</h3>
+                                <p>{achievement.description}</p>
+                                {!achievement.completed && achievement.pointsNeeded > 0 && (
+                                    <div className="progress-text">
+                                        {language === "es" 
+                                            ? `Te faltan ${achievement.pointsNeeded} puntos` 
+                                            : `${achievement.pointsNeeded} points needed`}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+
     const isLetterSelected = (row, col) => 
         selectedLetters.some(item => item.position === `${row}-${col}`);
 
@@ -431,9 +552,17 @@ function Game() {
                         </div>
                     )}
                 </div>
-                <button className="reset-game-button" onClick={resetGame}>
-                    {language === "es" ? "Jugar de nuevo" : "Play Again"}
-                </button>
+                <div className="game-over-buttons">
+                    <button className="reset-game-button" onClick={resetGame}>
+                        {language === "es" ? "Jugar de nuevo" : "Play Again"}
+                    </button>
+                    <button 
+                        className="achievements-button" 
+                        onClick={handleAchievementsClick}
+                    >
+                        <FaTrophy /> {language === "es" ? "Ver Logros" : "View Achievements"}
+                    </button>
+                </div>
             </div>
         </div>
     );
@@ -492,6 +621,7 @@ function Game() {
                 {showHardcoreWarning && <HardcoreWarningModal />}
                 {accountDeleted && <AccountDeletedModal />}
                 {gameOver && !accountDeleted && <GameOverModal />}
+                {showAchievements && <AchievementsModal />}
 
                 <div className="game-content-center">
                     <div className="title-and-timer">
@@ -582,6 +712,14 @@ function Game() {
                                 disabled={selectedLetters.length === 0}
                             >
                                 {language === "es" ? "Ingresar" : "Submit"}
+                            </button>
+                        )}
+                        {!gameOver && (
+                            <button 
+                                className="achievements-button" 
+                                onClick={handleAchievementsClick}
+                            >
+                                <FaTrophy /> {language === "es" ? "Logros" : "Achievements"}
                             </button>
                         )}
                     </div>

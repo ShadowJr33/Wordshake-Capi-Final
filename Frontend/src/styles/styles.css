@@ -1520,3 +1520,129 @@ body.tema-oscuro .word-stats span:last-child {
     from { opacity: 1; transform: translateY(0); }
     to { opacity: 0; transform: translateY(-20px); }
 }
+
+/* Achievements Modal */
+.achievements-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.achievements-content {
+    background-color: var(--background-color);
+    padding: 2rem;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.close-achievements {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-color);
+}
+
+.achievements-list {
+    margin-top: 1rem;
+}
+
+.achievement-item {
+    display: flex;
+    align-items: center;
+    padding: 0.8rem;
+    margin-bottom: 0.8rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.achievement-item.completed {
+    background-color: rgba(76, 175, 80, 0.1);
+    border-left: 4px solid #4CAF50;
+}
+
+.achievement-item.locked {
+    background-color: rgba(158, 158, 158, 0.1);
+    border-left: 4px solid #9E9E9E;
+    opacity: 0.8;
+}
+
+.achievement-icon {
+    font-size: 1.5rem;
+    margin-right: 1rem;
+    flex-shrink: 0;
+}
+
+.achievement-details {
+    flex-grow: 1;
+}
+
+.achievement-details h3 {
+    margin: 0 0 0.3rem 0;
+    font-size: 1.1rem;
+}
+
+.achievement-details p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.progress-text {
+    font-size: 0.8rem;
+    margin-top: 0.3rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* Game Over Buttons */
+.game-over-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    justify-content: center;
+}
+
+.achievements-button {
+    background-color: #FFC107;
+    color: #000;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.achievements-button:hover {
+    background-color: #FFA000;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .game-over-buttons {
+        flex-direction: column;
+    }
+    
+    .achievements-button, .reset-game-button {
+        width: 100%;
+    }
+}
