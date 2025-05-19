@@ -4,6 +4,7 @@ import Rules from "./views/Rules.jsx";
 import Game from "./views/Game.jsx"; // Importa el componente Game
 import { ThemeProvider } from "./components/ThemeContext";
 import React from 'react';
+import './styles/styles.css';
 
 
 

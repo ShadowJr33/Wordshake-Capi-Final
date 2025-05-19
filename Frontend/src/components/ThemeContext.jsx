@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import React from 'react';
 
 // 1️⃣ Creamos el contexto
 const ThemeContext = createContext();
