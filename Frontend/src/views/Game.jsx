@@ -6,6 +6,7 @@ import { useTheme } from "../components/ThemeContext";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import defaultAvatar from "../assets/default-avatar.png";
+import React from 'react';
 
 function Game() {
     const navigate = useNavigate();
