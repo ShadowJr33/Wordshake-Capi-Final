@@ -6,10 +6,9 @@ import React from 'react';
 
 function Rules() {
     const navigate = useNavigate();
-    const { theme } = useTheme(); // Obtener el tema desde el contexto
-    const [language, setLanguage] = useState("en"); // Estado para el idioma
+    const { theme } = useTheme();
+    const [language, setLanguage] = useState("en");
 
-    // Definición de las traducciones para inglés y español
     const translations = {
         en: {
             mainTitleRules: "Rules",
@@ -28,6 +27,11 @@ function Rules() {
             score7Letters: "7-letter words: 5 points",
             score8Letters: "8 or more letters: 11 points",
             maximizeScore: "Try to find the longest words to maximize your score!",
+            difficultyTitle: "Difficulty Levels",
+            easy: "Easy: 4 minutes to find words and no time is deducted for wrong words.",
+            medium: "Medium: 3 minutes to find words and no time is deducted for wrong words.",
+            hard: "Hard: 2 minutes to find words and time is deducted for wrong words.",
+            diablo: "Hardcore: 1 minute and if you don't score 10 points, your account will be deleted.",
         },
         es: {
             mainTitleRules: "Reglas",
@@ -46,13 +50,16 @@ function Rules() {
             score7Letters: "Palabras de 7 letras: 5 puntos",
             score8Letters: "8 o más letras: 11 puntos",
             maximizeScore: "¡Intenta encontrar las palabras más largas para maximizar tu puntuación!",
+            difficultyTitle: "Niveles de Dificultad",
+            easy: "Fácil: 4 minutos para buscar palabras y no se resta tiempo por palabras incorrectas.",
+            medium: "Medio: 3 minutos para buscar palabras y no se resta tiempo por palabras incorrectas.",
+            hard: "Difícil: 2 minutos para buscar palabras y se resta tiempo por palabras incorrectas.",
+            diablo: "Diablo: 1 minuto y si no llegas a 10 puntos se elimina la cuenta.",
         },
     };
 
-    // Obtener la traducción actual
     const t = translations[language];
 
-    // Cargar el archivo CSS correcto cuando cambie el tema
     useEffect(() => {
         const link = document.getElementById("theme-stylesheet");
         if (link) {
@@ -61,25 +68,19 @@ function Rules() {
         }
     }, [theme]);
 
-    
-
-    // Cambiar el idioma
     const toggleLanguage = () => {
         setLanguage((prevLang) => (prevLang === "en" ? "es" : "en"));
     };
 
     return (
         <div className="rules">
-            {/* Botón para cambiar el idioma */}
             <button className="ghost" onClick={toggleLanguage}
                 style={{ position: "absolute", top: "10px", right: "10px" }}>
                 {language === "en" ? "EN" : "ES"}
             </button>
 
-            {/* 🔄 Botón de cambio de tema */}
             <ThemeToggle />
 
-            {/* Botón para volver al inicio */}
             <button className="ghost" onClick={() => navigate("/")}
                 style={{ position: "absolute", top: "10px", left: "10px" }}>
                 X
@@ -95,6 +96,7 @@ function Rules() {
                     <li>{t.rule4}</li>
                     <li>{t.rule5}</li>
                 </ol>
+
                 <h3>{t.scoringTitle}</h3>
                 <p>{t.scoringDescription}</p>
                 <ul>
@@ -106,6 +108,14 @@ function Rules() {
                     <li>{t.score8Letters}</li>
                 </ul>
                 <p>{t.maximizeScore}</p>
+
+                <h3>{t.difficultyTitle}</h3>
+                <ul>
+                    <li>{t.easy}</li>
+                    <li>{t.medium}</li>
+                    <li>{t.hard}</li>
+                    <li>{t.diablo}</li>
+                </ul>
             </div>
         </div>
     );
